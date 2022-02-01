@@ -22,12 +22,12 @@
 #include "event.h"
 
 static bool
-below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new)
+below_assoc_threshold(struct usteer_node *node_cur, struct usteer_node *node_new)
 {
-	int n_assoc_cur = si_cur->node->n_assoc;
-	int n_assoc_new = si_new->node->n_assoc;
-	bool ref_5g = si_cur->node->freq > 4000;
-	bool node_5g = si_new->node->freq > 4000;
+	int n_assoc_cur = node_cur->n_assoc;
+	int n_assoc_new = node_new->n_assoc;
+	bool ref_5g = node_cur->freq > 4000;
+	bool node_5g = node_new->freq > 4000;
 
 	if (ref_5g && !node_5g)
 		n_assoc_new += config.band_steering_threshold;
@@ -40,9 +40,9 @@ below_assoc_threshold(struct sta_info *si_cur, struct sta_info *si_new)
 }
 
 static bool
-better_signal_strength(struct sta_info *si_cur, struct sta_info *si_new)
+better_signal_strength(int signal_cur, int signal_new)
 {
-	const bool is_better = si_new->signal - si_cur->signal
+	const bool is_better = signal_new - signal_cur
 				> (int) config.signal_diff_threshold;
 
 	if (!config.signal_diff_threshold)
@@ -52,33 +52,31 @@ better_signal_strength(struct sta_info *si_cur, struct sta_info *si_new)
 }
 
 static bool
-below_load_threshold(struct sta_info *si)
+below_load_threshold(struct usteer_node *node)
 {
-	return si->node->n_assoc >= config.load_kick_min_clients &&
-	       si->node->load > config.load_kick_threshold;
+	return node->n_assoc >= config.load_kick_min_clients &&
+	       node->load > config.load_kick_threshold;
 }
 
 static bool
-has_better_load(struct sta_info *si_cur, struct sta_info *si_new)
+has_better_load(struct usteer_node *node_cur, struct usteer_node *node_new)
 {
-	return !below_load_threshold(si_cur) && below_load_threshold(si_new);
+	return !below_load_threshold(node_cur) && below_load_threshold(node_new);
 }
 
 static bool
-below_max_assoc(struct sta_info *si)
+below_max_assoc(struct usteer_node *node)
 {
-	struct usteer_node *node = si->node;
-
 	return !node->max_assoc || node->n_assoc < node->max_assoc;
 }
 
 static bool
-over_min_signal(struct sta_info *si)
+over_min_signal(struct usteer_node *node, int signal)
 {
-	if (config.min_snr && si->signal < usteer_snr_to_signal(si->node, config.min_snr))
+	if (config.min_snr && signal < usteer_snr_to_signal(node, config.min_snr))
 		return false;
 
-	if (config.roam_trigger_snr && si->signal < usteer_snr_to_signal(si->node, config.roam_trigger_snr))
+	if (config.roam_trigger_snr && signal < usteer_snr_to_signal(node, config.roam_trigger_snr))
 		return false;
 	
 	return true;
@@ -87,23 +85,27 @@ over_min_signal(struct sta_info *si)
 static uint32_t
 is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 {
+	struct usteer_node *current_node = si_cur->node;
+	struct usteer_node *new_node = si_new->node;
+	int current_signal = si_cur->signal;
+	int new_signal = si_new->signal;
 	uint32_t reasons = 0;
 
-	if (!below_max_assoc(si_new))
+	if (!below_max_assoc(new_node))
 		return 0;
 
-	if (!over_min_signal(si_new))
+	if (!over_min_signal(new_node, new_signal))
 		return 0;
 
-	if (below_assoc_threshold(si_cur, si_new) &&
-	    !below_assoc_threshold(si_new, si_cur))
+	if (below_assoc_threshold(current_node, new_node) &&
+	    !below_assoc_threshold(new_node, current_node))
 		reasons |= (1 << UEV_SELECT_REASON_NUM_ASSOC);
 
-	if (better_signal_strength(si_cur, si_new))
+	if (better_signal_strength(current_signal, new_signal))
 		reasons |= (1 << UEV_SELECT_REASON_SIGNAL);
 
-	if (has_better_load(si_cur, si_new) &&
-		!has_better_load(si_cur, si_new))
+	if (has_better_load(current_node, new_node) &&
+		!has_better_load(current_node, new_node))
 		reasons |= (1 << UEV_SELECT_REASON_LOAD);
 
 	return reasons;
