@@ -642,7 +642,7 @@ int usteer_ubus_notify_client_disassoc(struct sta_info *si)
 
 	blob_buf_init(&b, 0);
 	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
-	blobmsg_add_u32(&b, "duration", config.roam_kick_delay);
+	blobmsg_add_u32(&b, "duration", config.roam_kick_delay / usteer_local_node_get_beacon_interval(ln));
 	usteer_ubus_disassoc_add_neighbors(si);
 	return ubus_invoke(ubus_ctx, ln->obj_id, "wnm_disassoc_imminent", b.head, NULL, 0, 100);
 }

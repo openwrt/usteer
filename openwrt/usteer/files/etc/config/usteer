@@ -87,8 +87,8 @@ config usteer
 	# Minimum time (ms) between client roaming trigger attempts
 	#option roam_trigger_interval 60000
 
-	# Timeout (in 100ms beacon intervals) for client roam requests
-	#option roam_kick_delay 100
+	# Timeout (ms) for client roam requests. usteer will kick the client after this times out.
+	#option roam_kick_delay 10000
 
 	# Minimum signal strength difference until AP steering policy is active
 	#option signal_diff_threshold 0

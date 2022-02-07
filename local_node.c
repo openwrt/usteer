@@ -457,12 +457,14 @@ usteer_local_node_status_cb(struct ubus_request *req, int type, struct blob_attr
 		MSG_FREQ,
 		MSG_CHANNEL,
 		MSG_OP_CLASS,
+		MSG_BEACON_INTERVAL,
 		__MSG_MAX,
 	};
 	static struct blobmsg_policy policy[__MSG_MAX] = {
 		[MSG_FREQ] = { "freq", BLOBMSG_TYPE_INT32 },
 		[MSG_CHANNEL] = { "channel", BLOBMSG_TYPE_INT32 },
 		[MSG_OP_CLASS] = { "op_class", BLOBMSG_TYPE_INT32 },
+		[MSG_BEACON_INTERVAL] = { "beacon_interval", BLOBMSG_TYPE_INT32 },
 	};
 	struct blob_attr *tb[__MSG_MAX];
 	struct usteer_local_node *ln;
@@ -478,6 +480,10 @@ usteer_local_node_status_cb(struct ubus_request *req, int type, struct blob_attr
 		node->channel = blobmsg_get_u32(tb[MSG_CHANNEL]);
 	if (tb[MSG_OP_CLASS])
 		node->op_class = blobmsg_get_u32(tb[MSG_OP_CLASS]);	
+
+	/* Local-Node */
+	if (tb[MSG_BEACON_INTERVAL])
+		ln->beacon_interval = blobmsg_get_u32(tb[MSG_BEACON_INTERVAL]);
 }
 
 static void
@@ -627,11 +633,12 @@ usteer_local_node_process_bss_tm_queries(struct uloop_timeout *timeout)
 	struct usteer_node *node;
 	struct sta_info *si;
 	struct sta *sta;
-
-	uint8_t validity_period = 100; /* ~ 10 seconds */
+	uint8_t validity_period;
 
 	ln = container_of(timeout, struct usteer_local_node, bss_tm_queries_timeout);
 	node = &ln->node;
+
+	validity_period = 10000 / usteer_local_node_get_beacon_interval(ln); /* ~ 10 seconds */
 
 	list_for_each_entry_safe(query, tmp, &ln->bss_tm_queries, list) {
 		sta = usteer_sta_get(query->sta_addr, false);
@@ -804,6 +811,16 @@ static void
 node_list_cb(struct ubus_context *ctx, struct ubus_object_data *obj, void *priv)
 {
 	usteer_register_node(ctx, obj->path, obj->id);
+}
+
+int
+usteer_local_node_get_beacon_interval(struct usteer_local_node *ln)
+{
+	/* Check if beacon-interval is not available (pre-21.02+) */
+	if (ln->beacon_interval < 1)
+		return 100;
+
+	return ln->beacon_interval;
 }
 
 void config_set_node_up_script(struct blob_attr *data)
