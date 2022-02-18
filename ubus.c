@@ -421,6 +421,16 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 			blobmsg_add_u64(&b, "timestamp", si->bss_transition_response.timestamp);
 			blobmsg_close_table(&b, t);
 
+			/* Beacon measurement modes */
+			a = blobmsg_open_array(&b, "beacon-measurement-modes");
+			if (usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_PASSIVE))
+				blobmsg_add_string(&b, "", "PASSIVE");
+			if (usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_ACTIVE))
+				blobmsg_add_string(&b, "", "ACTIVE");
+			if (usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_TABLE))
+				blobmsg_add_string(&b, "", "TABLE");
+			blobmsg_close_array(&b, a);
+
 			/* Measurements */
 			a = blobmsg_open_array(&b, "measurements");
 			list_for_each_entry(mr, &si->sta->measurements, sta_list) {
