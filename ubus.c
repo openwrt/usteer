@@ -431,6 +431,9 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 				blobmsg_add_string(&b, "", "TABLE");
 			blobmsg_close_array(&b, a);
 
+			/* BSS-Transition support */
+			blobmsg_add_u8(&b, "bss-transition-management", si->sta->bss_transition);
+
 			/* Measurements */
 			a = blobmsg_open_array(&b, "measurements");
 			list_for_each_entry(mr, &si->sta->measurements, sta_list) {
