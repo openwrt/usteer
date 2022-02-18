@@ -269,6 +269,7 @@ struct sta {
 	uint8_t addr[6];
 
 	uint8_t rrm;
+	bool bss_transition;
 };
 
 struct usteer_beacon_report {
