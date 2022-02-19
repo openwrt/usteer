@@ -238,6 +238,9 @@ struct sta_info {
 	uint64_t last_connected;
 	int signal;
 
+	uint8_t rrm;
+	bool bss_transition;
+
 	enum roam_trigger_state roam_state;
 	uint8_t roam_tries;
 	uint64_t roam_event;
@@ -267,9 +270,6 @@ struct sta {
 	uint8_t seen_5ghz : 1;
 
 	uint8_t addr[6];
-
-	uint8_t rrm;
-	bool bss_transition;
 };
 
 struct usteer_beacon_report {
@@ -327,7 +327,7 @@ int usteer_ubus_bss_transition_request(struct sta_info *si,
 struct sta *usteer_sta_get(const uint8_t *addr, bool create);
 struct sta_info *usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create);
 
-bool usteer_sta_supports_beacon_measurement_mode(struct sta *sta, enum usteer_beacon_measurement_mode mode);
+bool usteer_sta_supports_beacon_measurement_mode(struct sta_info *si, enum usteer_beacon_measurement_mode mode);
 
 void usteer_sta_disconnected(struct sta_info *si);
 void usteer_sta_info_update_timeout(struct sta_info *si, int timeout);

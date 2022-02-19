@@ -423,16 +423,16 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 
 			/* Beacon measurement modes */
 			a = blobmsg_open_array(&b, "beacon-measurement-modes");
-			if (usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_PASSIVE))
+			if (usteer_sta_supports_beacon_measurement_mode(si, BEACON_MEASUREMENT_PASSIVE))
 				blobmsg_add_string(&b, "", "PASSIVE");
-			if (usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_ACTIVE))
+			if (usteer_sta_supports_beacon_measurement_mode(si, BEACON_MEASUREMENT_ACTIVE))
 				blobmsg_add_string(&b, "", "ACTIVE");
-			if (usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_TABLE))
+			if (usteer_sta_supports_beacon_measurement_mode(si, BEACON_MEASUREMENT_TABLE))
 				blobmsg_add_string(&b, "", "TABLE");
 			blobmsg_close_array(&b, a);
 
 			/* BSS-Transition support */
-			blobmsg_add_u8(&b, "bss-transition-management", si->sta->bss_transition);
+			blobmsg_add_u8(&b, "bss-transition-management", si->bss_transition);
 
 			/* Measurements */
 			a = blobmsg_open_array(&b, "measurements");
@@ -664,7 +664,7 @@ int usteer_ubus_trigger_client_scan(struct sta_info *si)
 {
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 
-	if (!usteer_sta_supports_beacon_measurement_mode(si->sta, BEACON_MEASUREMENT_ACTIVE)) {
+	if (!usteer_sta_supports_beacon_measurement_mode(si, BEACON_MEASUREMENT_ACTIVE)) {
 		MSG(DEBUG, "STA does not support beacon measurement sta=" MAC_ADDR_FMT "\n", MAC_ADDR_DATA(si->sta->addr));
 		return 0;
 	}

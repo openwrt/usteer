@@ -210,15 +210,15 @@ usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 }
 
 bool
-usteer_sta_supports_beacon_measurement_mode(struct sta *sta, enum usteer_beacon_measurement_mode mode)
+usteer_sta_supports_beacon_measurement_mode(struct sta_info *si, enum usteer_beacon_measurement_mode mode)
 {
 	switch (mode) {
 		case BEACON_MEASUREMENT_PASSIVE:
-			return sta->rrm & (1 << 4);
+			return si->rrm & (1 << 4);
 		case BEACON_MEASUREMENT_ACTIVE:
-			return sta->rrm & (1 << 5);
+			return si->rrm & (1 << 5);
 		case BEACON_MEASUREMENT_TABLE:
-			return sta->rrm & (1 << 6);
+			return si->rrm & (1 << 6);
 	}
 
 	return false;

@@ -344,7 +344,7 @@ usteer_local_node_assoc_update(struct sta_info *si, struct blob_attr *data)
 }
 
 static void
-usteer_local_node_update_sta_rrm_wnm(const uint8_t *addr, struct blob_attr *client_attr)
+usteer_local_node_update_sta_rrm_wnm(struct sta_info *si, struct blob_attr *client_attr)
 {
 	static const struct blobmsg_policy rrm_policy = {
 		.name = "rrm",
@@ -355,24 +355,15 @@ usteer_local_node_update_sta_rrm_wnm(const uint8_t *addr, struct blob_attr *clie
 		.type = BLOBMSG_TYPE_ARRAY,
 	};
 	struct blob_attr *rrm_blob = NULL, *wnm_blob = NULL, *cur;
-	struct sta *sta;
 	int rem;
 	int i = 0;
-
-	if (!addr)
-		return;
-
-	/* Don't create the STA */
-	sta = usteer_sta_get(addr, false);
-	if (!sta)
-		return;
 
 	/* RRM */
 	blobmsg_parse(&rrm_policy, 1, &rrm_blob, blobmsg_data(client_attr), blobmsg_data_len(client_attr));
 	if (!rrm_blob)
 		return;
 
-	sta->rrm = blobmsg_get_u32(blobmsg_data(rrm_blob));
+	si->rrm = blobmsg_get_u32(blobmsg_data(rrm_blob));
 
 	/* Extended Capabilities / WNM */
 	blobmsg_parse(&ext_capa_policy, 1, &wnm_blob, blobmsg_data(client_attr), blobmsg_data_len(client_attr));
@@ -385,7 +376,7 @@ usteer_local_node_update_sta_rrm_wnm(const uint8_t *addr, struct blob_attr *clie
 		
 		if (i == 2) {
 			if (blobmsg_get_u32(cur) & (1 << 3))
-				sta->bss_transition = true;
+				si->bss_transition = true;
 		}
 
 		i++;
@@ -432,7 +423,7 @@ usteer_local_node_set_assoc(struct usteer_local_node *ln, struct blob_attr *cl)
 		}
 
 		/* Read RRM information */
-		usteer_local_node_update_sta_rrm_wnm(addr, cur);
+		usteer_local_node_update_sta_rrm_wnm(si, cur);
 	}
 
 	node->n_assoc = n_assoc;
