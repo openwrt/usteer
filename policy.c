@@ -463,8 +463,8 @@ usteer_local_node_snr_kick(struct usteer_local_node *ln)
 	}
 }
 
-void
-usteer_local_node_kick(struct usteer_local_node *ln)
+static void
+usteer_local_node_load_kick(struct usteer_local_node *ln)
 {
 	struct usteer_node *node = &ln->node;
 	struct sta_info *kick1 = NULL, *kick2 = NULL;
@@ -474,9 +474,6 @@ usteer_local_node_kick(struct usteer_local_node *ln)
 		.node_local = &ln->node,
 	};
 	unsigned int min_count = DIV_ROUND_UP(config.load_kick_delay, config.local_sta_update);
-
-	usteer_local_node_roam_check(ln, &ev);
-	usteer_local_node_snr_kick(ln);
 
 	if (!config.load_kick_enabled || !config.load_kick_threshold ||
 	    !config.load_kick_delay)
@@ -549,4 +546,17 @@ usteer_local_node_kick(struct usteer_local_node *ln)
 
 out:
 	usteer_event(&ev);
+}
+
+
+void
+usteer_local_node_kick(struct usteer_local_node *ln)
+{
+	struct uevent ev = {
+		.node_local = &ln->node,
+	};
+
+	usteer_local_node_roam_check(ln, &ev);
+	usteer_local_node_snr_kick(ln);
+	usteer_local_node_load_kick(ln);
 }
