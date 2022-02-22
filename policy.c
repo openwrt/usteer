@@ -556,7 +556,7 @@ usteer_local_node_kick(struct usteer_local_node *ln)
 		.node_local = &ln->node,
 	};
 
-	usteer_local_node_roam_check(ln, &ev);
 	usteer_local_node_snr_kick(ln);
 	usteer_local_node_load_kick(ln);
+	usteer_local_node_roam_check(ln, &ev);
 }
