@@ -219,9 +219,6 @@ enum roam_trigger_state {
 	ROAM_TRIGGER_IDLE,
 	ROAM_TRIGGER_SCAN,
 	ROAM_TRIGGER_SCAN_DONE,
-	ROAM_TRIGGER_WAIT_KICK,
-	ROAM_TRIGGER_NOTIFY_KICK,
-	ROAM_TRIGGER_KICK,
 };
 
 struct sta_info {
@@ -253,6 +250,8 @@ struct sta_info {
 		uint8_t status_code;
 		uint64_t timestamp;
 	} bss_transition_response;
+
+	uint64_t kick_time;
 
 	int kick_count;
 

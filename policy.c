@@ -314,14 +314,11 @@ usteer_roam_sm_found_better_node(struct sta_info *si, struct uevent *ev, enum ro
 }
 
 static bool
-usteer_roam_trigger_sm(struct sta_info *si)
+usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 {
 	struct uevent ev = {
 		.si_cur = si,
 	};
-	uint64_t min_signal;
-
-	min_signal = usteer_snr_to_signal(si->node, config.roam_trigger_snr);
 
 	switch (si->roam_state) {
 	case ROAM_TRIGGER_SCAN:
@@ -341,7 +338,7 @@ usteer_roam_trigger_sm(struct sta_info *si)
 		if (config.roam_scan_tries && si->roam_tries >= config.roam_scan_tries) {
 			if (!config.roam_scan_timeout) {
 				/* Prepare to kick client */
-				usteer_roam_set_state(si, ROAM_TRIGGER_WAIT_KICK, &ev);
+				usteer_roam_set_state(si, ROAM_TRIGGER_SCAN_DONE, &ev);
 			} else {
 				/* Kick in scan timeout */
 				si->roam_scan_timeout_start = current_time;
@@ -360,30 +357,10 @@ usteer_roam_trigger_sm(struct sta_info *si)
 		break;
 
 	case ROAM_TRIGGER_SCAN_DONE:
-		if (usteer_roam_sm_found_better_node(si, &ev, ROAM_TRIGGER_WAIT_KICK))
-			break;
-
-		/* Kick back to SCAN state if candidate expired */
-		usteer_roam_sm_start_scan(si, &ev);
-		break;
-
-	case ROAM_TRIGGER_WAIT_KICK:
-		if (si->signal > min_signal)
-			break;
-
-		usteer_roam_set_state(si, ROAM_TRIGGER_NOTIFY_KICK, &ev);
-		usteer_ubus_notify_client_disassoc(si);
-		break;
-	case ROAM_TRIGGER_NOTIFY_KICK:
-		if (current_time - si->roam_event < config.roam_kick_delay * 100)
-			break;
-
-		usteer_roam_set_state(si, ROAM_TRIGGER_KICK, &ev);
-		break;
-	case ROAM_TRIGGER_KICK:
-		usteer_ubus_kick_client(si);
+		usteer_ubus_bss_transition_request(si, 1, false, false, 100);
+		si->kick_time = current_time;
 		usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, &ev);
-		return true;
+		break;
 	}
 
 	return false;
@@ -407,6 +384,7 @@ usteer_local_node_roam_check(struct usteer_local_node *ln, struct uevent *ev)
 
 	list_for_each_entry(si, &ln->node.sta_info, node_list) {
 		if (si->connected != STA_CONNECTED || si->signal >= min_signal ||
+			si->kick_time ||
 		    current_time - si->roam_kick < config.roam_trigger_interval) {
 			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, ev);
 			continue;
@@ -416,7 +394,7 @@ usteer_local_node_roam_check(struct usteer_local_node *ln, struct uevent *ev)
 		 * If the state machine kicked a client, other clients should wait
 		 * until the next turn
 		 */
-		if (usteer_roam_trigger_sm(si))
+		if (usteer_roam_trigger_sm(ln, si))
 			return;
 	}
 }
@@ -548,6 +526,18 @@ out:
 	usteer_event(&ev);
 }
 
+static void
+usteer_local_node_perform_kick(struct usteer_local_node *ln)
+{
+	struct sta_info *si;
+
+	list_for_each_entry(si, &ln->node.sta_info, node_list) {
+		if (!si->kick_time || si->kick_time > current_time)
+			continue;
+
+		usteer_ubus_kick_client(si);
+	}
+}
 
 void
 usteer_local_node_kick(struct usteer_local_node *ln)
@@ -555,6 +545,8 @@ usteer_local_node_kick(struct usteer_local_node *ln)
 	struct uevent ev = {
 		.node_local = &ln->node,
 	};
+
+	usteer_local_node_perform_kick(ln);
 
 	usteer_local_node_snr_kick(ln);
 	usteer_local_node_load_kick(ln);
