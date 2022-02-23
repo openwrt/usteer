@@ -174,6 +174,8 @@ struct usteer_config {
 	int32_t min_connect_snr;
 	uint32_t signal_diff_threshold;
 
+	uint32_t steer_reject_timeout;
+
 	int32_t roam_scan_snr;
 	uint32_t roam_process_timeout;
 

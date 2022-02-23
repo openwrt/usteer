@@ -97,6 +97,8 @@ void usteer_init_defaults(void)
 	config.initial_connect_delay = 0;
 	config.remote_node_timeout = 10;
 
+	config.steer_reject_timeout = 60000;
+
 	config.roam_kick_delay = 10000;
 	config.roam_process_timeout = 5 * 1000;
 	config.roam_scan_tries = 3;

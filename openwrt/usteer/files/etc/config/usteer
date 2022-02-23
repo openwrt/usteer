@@ -65,6 +65,9 @@ config usteer
 	# Timeout after which a station with snr < min_snr will be kicked
 	#option min_snr_kick_delay 5000
 
+	# Timeout (ms) for which a client will not be steered after rejecting a BSS-transition-request
+	#option steer_reject_timeout 60000
+
 	# Timeout (in ms) after which a association following a disassociation is not seen
 	# as a roam
 	#option roam_process_timeout 5000

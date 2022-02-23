@@ -385,6 +385,7 @@ usteer_local_node_roam_check(struct usteer_local_node *ln, struct uevent *ev)
 	list_for_each_entry(si, &ln->node.sta_info, node_list) {
 		if (si->connected != STA_CONNECTED || si->signal >= min_signal ||
 			si->kick_time ||
+			(si->bss_transition_response.status_code && current_time - si->bss_transition_response.timestamp < config.steer_reject_timeout) ||
 		    current_time - si->roam_kick < config.roam_trigger_interval) {
 			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, ev);
 			continue;
