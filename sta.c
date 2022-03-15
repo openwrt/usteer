@@ -160,8 +160,10 @@ usteer_sta_info_update(struct sta_info *si, int signal, bool avg)
 	if (si->connected == STA_CONNECTED && si->signal != NO_SIGNAL && !avg)
 		signal = NO_SIGNAL;
 
-	if (signal != NO_SIGNAL)
+	if (signal != NO_SIGNAL) {
 		si->signal = signal;
+		usteer_band_steering_sta_update(si);
+	}
 
 	si->seen = current_time;
 

@@ -642,6 +642,7 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 	usteer_local_node_state_reset(ln);
 	uloop_timeout_set(&ln->req_timer, 1);
 	usteer_local_node_kick(ln);
+	usteer_band_steering_perform_steer(ln);
 	uloop_timeout_set(timeout, config.local_sta_update);
 }
 

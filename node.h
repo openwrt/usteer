@@ -59,6 +59,8 @@ struct usteer_local_node {
 
 	int beacon_interval;
 
+	uint16_t band_steering_interval;
+
 	struct {
 		bool present;
 		struct uloop_timeout update;

@@ -24,7 +24,7 @@ IF(NOT HAVE_PCAP_H)
 	MESSAGE(FATAL_ERROR "pcap/pcap.h is not found")
 ENDIF()
 
-SET(SOURCES main.c local_node.c node.c sta.c policy.c ubus.c remote.c parse.c netifd.c timeout.c event.c measurement.c)
+SET(SOURCES main.c local_node.c node.c sta.c policy.c ubus.c remote.c parse.c netifd.c timeout.c event.c measurement.c band_steering.c)
 
 IF(NL_CFLAGS)
 	ADD_DEFINITIONS(${NL_CFLAGS})

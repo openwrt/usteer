@@ -181,6 +181,8 @@ struct cfg_item {
 	_cfg(U32, load_kick_delay), \
 	_cfg(U32, load_kick_min_clients), \
 	_cfg(U32, load_kick_reason_code), \
+	_cfg(U32, band_steering_interval), \
+	_cfg(I32, band_steering_min_snr), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script), \
 	_cfg(ARRAY_CB, event_log_types), \
@@ -651,6 +653,31 @@ int usteer_ubus_bss_transition_request(struct sta_info *si,
 	blobmsg_add_u8(&b, "abridged", abridged);
 	blobmsg_add_u32(&b, "validity_period", validity_period);
 	usteer_ubus_disassoc_add_neighbors(si);
+	return ubus_invoke(ubus_ctx, ln->obj_id, "bss_transition_request", b.head, NULL, 0, 100);
+}
+
+int usteer_ubus_band_steering_request(struct sta_info *si)
+{
+	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
+	struct usteer_node *node;
+	void *c;
+
+	blob_buf_init(&b, 0);
+	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
+	blobmsg_add_u32(&b, "dialog_token", 0);
+	blobmsg_add_u8(&b, "disassociation_imminent", false);
+	blobmsg_add_u8(&b, "abridged", false);
+	blobmsg_add_u32(&b, "validity_period", 100);
+
+	c = blobmsg_open_array(&b, "neighbors");
+	for_each_local_node(node) {
+		if (!usteer_band_steering_is_target(ln, node))
+			continue;
+	
+		usteer_add_nr_entry(si->node, node);
+	}
+	blobmsg_close_array(&b, c);
+
 	return ubus_invoke(ubus_ctx, ln->obj_id, "bss_transition_request", b.head, NULL, 0, 100);
 }
 

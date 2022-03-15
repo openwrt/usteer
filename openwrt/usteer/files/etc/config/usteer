@@ -117,6 +117,14 @@ config usteer
 	# Reason code on client kick based on channel load (default: WLAN_REASON_DISASSOC_AP_BUSY)
 	#option load_kick_reason_code 5
 
+	# Attempting to steer clients to a higher frequency-band every n ms.
+	# A value of 0 disabled band-steering.
+	#option band_steering_interval 120000
+
+	# Minimal SNR or absolute signal a device has to maintain over band_steering_interval to be
+	# steered to a higher frequency band
+	#option band_steering_min_snr -60
+
 	# Script to run after bringing up a node
 	#option node_up_script ''
 

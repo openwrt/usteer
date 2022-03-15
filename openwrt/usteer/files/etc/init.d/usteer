@@ -85,6 +85,7 @@ uci_usteer() {
 		roam_kick_delay roam_scan_tries roam_scan_timeout \
 		roam_scan_snr roam_scan_interval \
 		roam_trigger_snr roam_trigger_interval \
+		band_steering_interval band_steering_min_snr \
 		load_kick_threshold load_kick_delay load_kick_min_clients \
 		load_kick_reason_code
 	do
