@@ -315,6 +315,8 @@ void usteer_local_node_kick(struct usteer_local_node *ln);
 
 int usteer_local_node_get_beacon_interval(struct usteer_local_node *ln);
 
+bool usteer_policy_node_below_max_assoc(struct usteer_node *node);
+
 void usteer_ubus_init(struct ubus_context *ctx);
 void usteer_ubus_kick_client(struct sta_info *si);
 int usteer_ubus_trigger_client_scan(struct sta_info *si);

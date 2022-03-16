@@ -64,8 +64,8 @@ has_better_load(struct usteer_node *node_cur, struct usteer_node *node_new)
 	return !below_load_threshold(node_cur) && below_load_threshold(node_new);
 }
 
-static bool
-below_max_assoc(struct usteer_node *node)
+bool
+usteer_policy_node_below_max_assoc(struct usteer_node *node)
 {
 	return !node->max_assoc || node->n_assoc < node->max_assoc;
 }
@@ -91,7 +91,7 @@ is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 	int new_signal = si_new->signal;
 	uint32_t reasons = 0;
 
-	if (!below_max_assoc(new_node))
+	if (!usteer_policy_node_below_max_assoc(new_node))
 		return 0;
 
 	if (!over_min_signal(new_node, new_signal))
