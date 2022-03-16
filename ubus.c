@@ -588,6 +588,9 @@ usteer_add_nr_entry(struct usteer_node *ln, struct usteer_node *node)
 	if (strcmp(ln->ssid, node->ssid) != 0)
 		return false;
 
+	if (!usteer_policy_node_below_max_assoc(node))
+		return false;
+
 	blobmsg_parse_array(policy, ARRAY_SIZE(tb), tb,
 			    blobmsg_data(node->rrm_nr),
 			    blobmsg_data_len(node->rrm_nr));
