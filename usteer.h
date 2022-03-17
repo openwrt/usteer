@@ -149,6 +149,7 @@ struct usteer_config {
 	uint32_t debug_level;
 
 	bool ipv6;
+	bool local_mode;
 
 	uint32_t sta_block_timeout;
 	uint32_t local_sta_timeout;

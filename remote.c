@@ -315,6 +315,9 @@ interface_recv_msg(struct interface *iface, char *addr_str, void *buf, int len)
 	struct blob_attr *cur;
 	int rem;
 
+	if (config.local_mode)
+		return;
+
 	if (blob_pad_len(data) != len) {
 		MSG(DEBUG, "Invalid message length (header: %d, real: %d)\n", blob_pad_len(data), len);
 		return;
@@ -606,7 +609,7 @@ usteer_check_timeout(void)
 	int timeout = config.remote_node_timeout;
 
 	list_for_each_entry_safe(node, tmp, &remote_nodes, list) {
-		if (node->check++ > timeout)
+		if (config.local_mode || node->check++ > timeout)
 			remote_node_free(node);
 	}
 }
@@ -653,7 +656,8 @@ usteer_send_update_timer(struct uloop_timeout *t)
 	usteer_update_time();
 	uloop_timeout_set(t, config.remote_update_interval);
 
-	if (!avl_is_empty(&local_nodes) || host_info_blob) {
+	if (!config.local_mode &&
+	    (!avl_is_empty(&local_nodes) || host_info_blob)) {
 		c = usteer_update_init();
 		for_each_local_node(node)
 			usteer_send_node(node, NULL);

@@ -5,6 +5,9 @@ config usteer
 	# Log messages to syslog (0/1)
 	option 'syslog' '1'
 
+	# Disable network communication (0/1)
+	option local_mode '0'
+
 	# Use IPv6 for remote exchange
 	option 'ipv6' '0'
 
