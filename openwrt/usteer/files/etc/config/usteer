@@ -125,6 +125,10 @@ config usteer
 	# steered to a higher frequency band
 	#option band_steering_min_snr -60
 
+	# Interval (ms) the device is sent a link-measurement request to help assess
+	# the bi-directional link quality. Setting the interval to 0 disables link-measurements.
+	#option link_measurement_interval 30000
+
 	# Script to run after bringing up a node
 	#option node_up_script ''
 

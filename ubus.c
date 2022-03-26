@@ -183,6 +183,7 @@ struct cfg_item {
 	_cfg(U32, load_kick_reason_code), \
 	_cfg(U32, band_steering_interval), \
 	_cfg(I32, band_steering_min_snr), \
+	_cfg(U32, link_measurement_interval), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script), \
 	_cfg(ARRAY_CB, event_log_types), \
@@ -693,6 +694,20 @@ int usteer_ubus_notify_client_disassoc(struct sta_info *si)
 	blobmsg_add_u32(&b, "duration", config.roam_kick_delay / usteer_local_node_get_beacon_interval(ln));
 	usteer_ubus_disassoc_add_neighbors(si);
 	return ubus_invoke(ubus_ctx, ln->obj_id, "wnm_disassoc_imminent", b.head, NULL, 0, 100);
+}
+
+int usteer_ubus_trigger_link_measurement(struct sta_info *si)
+{
+	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
+
+	if (!usteer_sta_supports_link_measurement(si))
+		return 0;
+
+	blob_buf_init(&b, 0);
+	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
+	blobmsg_add_u32(&b, "tx-power-used", 5);
+	blobmsg_add_u32(&b, "tx-power-max", 10);
+	return ubus_invoke(ubus_ctx, ln->obj_id, "link_measurement_req", b.head, NULL, 0, 100);
 }
 
 int usteer_ubus_trigger_client_scan(struct sta_info *si)

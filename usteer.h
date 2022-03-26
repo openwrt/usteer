@@ -191,6 +191,8 @@ struct usteer_config {
 	uint32_t band_steering_interval;
 	int32_t band_steering_min_snr; 
 
+	uint32_t link_measurement_interval;
+
 	uint32_t initial_connect_delay;
 
 	bool load_kick_enabled;
@@ -388,4 +390,6 @@ void usteer_measurement_report_del(struct usteer_measurement_report *mr);
 struct usteer_measurement_report *
 usteer_measurement_report_add(struct sta *sta, struct usteer_node *node, uint8_t rcpi, uint8_t rsni, uint64_t timestamp);
 
+
+int usteer_ubus_trigger_link_measurement(struct sta_info *si);
 #endif

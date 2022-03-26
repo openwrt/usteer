@@ -70,6 +70,8 @@ struct usteer_local_node {
 		bool req_pending;
 		bool status_complete;
 	} netifd;
+
+	unsigned int link_measurement_tries;
 };
 
 struct interface;

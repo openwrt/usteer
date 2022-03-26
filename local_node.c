@@ -660,6 +660,33 @@ usteer_local_node_state_next(struct uloop_timeout *timeout)
 }
 
 static void
+usteer_local_node_request_link_measurement(struct usteer_local_node *ln)
+{
+	unsigned int min_count = DIV_ROUND_UP(config.link_measurement_interval, config.local_sta_update);
+	struct usteer_node *node;
+	struct sta_info *si;
+
+	node = &ln->node;
+
+	if (ln->link_measurement_tries < min_count) {
+		ln->link_measurement_tries++;
+		return;
+	}
+	
+	ln->link_measurement_tries = 0;
+
+	if (!config.link_measurement_interval)
+		return;
+
+	list_for_each_entry(si, &node->sta_info, node_list) {
+		if (si->connected != STA_CONNECTED)
+			continue;
+
+		usteer_ubus_trigger_link_measurement(si);
+	}
+}
+
+static void
 usteer_local_node_update(struct uloop_timeout *timeout)
 {
 	struct usteer_local_node *ln;
@@ -680,6 +707,8 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 	uloop_timeout_set(&ln->req_timer, 1);
 	usteer_local_node_kick(ln);
 	usteer_band_steering_perform_steer(ln);
+	usteer_local_node_request_link_measurement(ln);
+
 	uloop_timeout_set(timeout, config.local_sta_update);
 }
 
