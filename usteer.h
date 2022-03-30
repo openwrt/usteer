@@ -344,6 +344,7 @@ struct sta *usteer_sta_get(const uint8_t *addr, bool create);
 struct sta_info *usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create);
 
 bool usteer_sta_supports_beacon_measurement_mode(struct sta_info *si, enum usteer_beacon_measurement_mode mode);
+bool usteer_sta_supports_link_measurement(struct sta_info *si);
 
 void usteer_sta_disconnected(struct sta_info *si);
 void usteer_sta_info_update_timeout(struct sta_info *si, int timeout);

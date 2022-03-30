@@ -227,6 +227,12 @@ usteer_sta_supports_beacon_measurement_mode(struct sta_info *si, enum usteer_bea
 	return false;
 }
 
+bool
+usteer_sta_supports_link_measurement(struct sta_info *si)
+{
+	return si->rrm & (1 << 0);
+}
+
 static void __usteer_init usteer_sta_init(void)
 {
 	usteer_timeout_init(&tq);
