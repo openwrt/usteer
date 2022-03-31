@@ -783,6 +783,7 @@ usteer_register_node(struct ubus_context *ctx, const char *name, uint32_t id)
 
 	blob_buf_init(&b, 0);
 	blobmsg_add_u8(&b, "neighbor_report", 1);
+	blobmsg_add_u8(&b, "link_measurement", 1);
 	blobmsg_add_u8(&b, "beacon_report", 1);
 	blobmsg_add_u8(&b, "bss_transition", 1);
 	ubus_invoke(ctx, id, "bss_mgmt_enable", b.head, NULL, NULL, 1000);
