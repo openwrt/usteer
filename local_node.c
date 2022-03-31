@@ -237,6 +237,43 @@ usteer_local_node_handle_beacon_report(struct usteer_local_node *ln, struct blob
 }
 
 static int
+usteer_local_node_handle_link_measurement_report(struct usteer_local_node *ln, struct blob_attr *msg)
+{
+	enum {
+		LMR_ADDRESS,
+		LMR_RCPI,
+		LMR_RSNI,
+		__LMR_MAX
+	};
+	struct blobmsg_policy policy[__LMR_MAX] = {
+		[LMR_ADDRESS] = { .name = "address", .type = BLOBMSG_TYPE_STRING },
+		[LMR_RCPI] = { .name = "rcpi", .type = BLOBMSG_TYPE_INT16 },
+		[LMR_RSNI] = { .name = "rsni", .type = BLOBMSG_TYPE_INT16 },
+	};
+	struct blob_attr *tb[__LMR_MAX];
+	uint8_t *addr;
+	struct sta *sta;
+
+	blobmsg_parse(policy, __LMR_MAX, tb, blob_data(msg), blob_len(msg));
+	if (!tb[LMR_ADDRESS] || !tb[LMR_RCPI] || !tb[LMR_RSNI])
+		return 0;
+
+	addr = (uint8_t *) ether_aton(blobmsg_get_string(tb[LMR_ADDRESS]));
+	if (!addr)
+		return 0;
+
+	sta = usteer_sta_get(addr, false);
+	if (!sta)
+		return 0;
+
+	usteer_measurement_report_add(sta, &ln->node,
+				      (uint8_t)blobmsg_get_u16(tb[LMR_RCPI]),
+				      (uint8_t)blobmsg_get_u16(tb[LMR_RSNI]),
+				      current_time);
+	return 0;
+}
+
+static int
 usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
 		   struct ubus_request_data *req, const char *method,
 		   struct blob_attr *msg)
@@ -275,6 +312,8 @@ usteer_handle_event(struct ubus_context *ctx, struct ubus_object *obj,
 		return usteer_handle_bss_tm_response(ln, msg);
 	} else if(!strcmp(method, "beacon-report")) {
 		return usteer_local_node_handle_beacon_report(ln, msg);
+	} else if(!strcmp(method, "link-measurement-report")) {
+		return usteer_local_node_handle_link_measurement_report(ln, msg);
 	}
 
 	for (i = 0; i < ARRAY_SIZE(event_types); i++) {
