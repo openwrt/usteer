@@ -205,8 +205,6 @@ usteer_local_node_handle_beacon_report(struct usteer_local_node *ln, struct blob
 		[BR_RSNI] = { .name = "rsni", .type = BLOBMSG_TYPE_INT16 },
 	};
 	struct blob_attr *tb[__BR_MAX];
-
-	struct usteer_beacon_report br;
 	struct usteer_node *node;
 	uint8_t *addr;
 	struct sta *sta;
@@ -231,10 +229,10 @@ usteer_local_node_handle_beacon_report(struct usteer_local_node *ln, struct blob
 	if (!node)
 		return 0;
 
-	br.rcpi = (uint8_t)blobmsg_get_u16(tb[BR_RCPI]);
-	br.rsni = (uint8_t)blobmsg_get_u16(tb[BR_RSNI]);
-
-	usteer_measurement_report_add_beacon_report(sta, node, &br, current_time);
+	usteer_measurement_report_add(sta, node,
+				      (uint8_t)blobmsg_get_u16(tb[BR_RCPI]),
+				      (uint8_t)blobmsg_get_u16(tb[BR_RSNI]),
+				      current_time);
 	return 0;
 }
 

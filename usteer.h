@@ -281,11 +281,6 @@ struct sta {
 	uint8_t addr[6];
 };
 
-struct usteer_beacon_report {
-	uint8_t rcpi;
-	uint8_t rsni;
-};
-
 struct usteer_measurement_report {
 	struct usteer_timeout timeout;
 
@@ -299,7 +294,8 @@ struct usteer_measurement_report {
 
 	uint64_t timestamp;
 
-	struct usteer_beacon_report beacon_report;
+	uint8_t rcpi;
+	uint8_t rsni;
 };
 
 extern struct ubus_context *ubus_ctx;
@@ -390,6 +386,6 @@ void usteer_measurement_report_sta_cleanup(struct sta *sta);
 void usteer_measurement_report_del(struct usteer_measurement_report *mr);
 
 struct usteer_measurement_report *
-usteer_measurement_report_add_beacon_report(struct sta *sta, struct usteer_node *node, struct usteer_beacon_report *br, uint64_t timestamp);
+usteer_measurement_report_add(struct sta *sta, struct usteer_node *node, uint8_t rcpi, uint8_t rsni, uint64_t timestamp);
 
 #endif

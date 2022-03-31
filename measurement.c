@@ -73,8 +73,8 @@ usteer_measurement_report_get(struct sta *sta, struct usteer_node *node, bool cr
 }
 
 struct usteer_measurement_report *
-usteer_measurement_report_add_beacon_report(struct sta *sta, struct usteer_node *node,
-					    struct usteer_beacon_report *br, uint64_t timestamp)
+usteer_measurement_report_add(struct sta *sta, struct usteer_node *node,
+			      uint8_t rcpi, uint8_t rsni, uint64_t timestamp)
 {
 	struct usteer_measurement_report *mr = usteer_measurement_report_get(sta, node, true);
 
@@ -82,7 +82,8 @@ usteer_measurement_report_add_beacon_report(struct sta *sta, struct usteer_node 
 		return NULL;
 
 	mr->timestamp = timestamp;
-	memcpy(&mr->beacon_report, br, sizeof(*br));
+	mr->rsni = rsni;
+	mr->rcpi = rcpi;
 
 	return mr;
 }

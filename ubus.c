@@ -446,8 +446,8 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 			list_for_each_entry(mr, &si->sta->measurements, sta_list) {
 				t = blobmsg_open_table(&b, "");
 				blobmsg_add_string(&b, "node", usteer_node_name(mr->node));
-				blobmsg_add_u32(&b, "rcpi", mr->beacon_report.rcpi);
-				blobmsg_add_u32(&b, "rsni", mr->beacon_report.rsni);
+				blobmsg_add_u32(&b, "rcpi", mr->rcpi);
+				blobmsg_add_u32(&b, "rsni", mr->rsni);
 				blobmsg_add_u64(&b, "timestamp", mr->timestamp);
 				blobmsg_close_table(&b, t);
 			}
