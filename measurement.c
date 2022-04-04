@@ -85,6 +85,9 @@ usteer_measurement_report_add(struct sta *sta, struct usteer_node *node,
 	mr->rsni = rsni;
 	mr->rcpi = rcpi;
 
+	/* Reset timeout */
+	usteer_timeout_set(&tq, &mr->timeout, config.measurement_report_timeout);
+
 	return mr;
 }
 
