@@ -114,7 +114,7 @@ is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 static struct sta_info *
 find_better_candidate(struct sta_info *si_ref, struct uevent *ev, uint32_t required_criteria, uint64_t max_age)
 {
-	struct sta_info *si;
+	struct sta_info *si, *candidate = NULL;
 	struct sta *sta = si_ref->sta;
 	uint32_t reasons;
 
@@ -143,10 +143,11 @@ find_better_candidate(struct sta_info *si_ref, struct uevent *ev, uint32_t requi
 			ev->select_reasons = reasons;
 		}
 
-		return si;
+		if (candidate && si->signal > candidate->signal)
+			candidate = si;
 	}
 
-	return NULL;
+	return candidate;
 }
 
 int
@@ -297,25 +298,26 @@ usteer_roam_sm_start_scan(struct sta_info *si, struct uevent *ev)
 	usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, ev);
 }
 
-static bool
+static struct sta_info *
 usteer_roam_sm_found_better_node(struct sta_info *si, struct uevent *ev, enum roam_trigger_state next_state)
 {
 	uint64_t max_age = 2 * config.roam_scan_interval;
+	struct sta_info *candidate;
 
 	if (max_age > current_time - si->roam_scan_start)
 		max_age = current_time - si->roam_scan_start;
 
-	if (find_better_candidate(si, ev, (1 << UEV_SELECT_REASON_SIGNAL), max_age)) {
+	candidate = find_better_candidate(si, ev, (1 << UEV_SELECT_REASON_SIGNAL), max_age);
+	if (candidate)
 		usteer_roam_set_state(si, next_state, ev);
-		return true;
-	}
 
-	return false;
+	return candidate;
 }
 
 static bool
 usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 {
+	struct sta_info *candidate;
 	struct uevent ev = {
 		.si_cur = si,
 	};
@@ -357,7 +359,12 @@ usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 		break;
 
 	case ROAM_TRIGGER_SCAN_DONE:
-		usteer_ubus_bss_transition_request(si, 1, false, false, 100);
+		candidate = usteer_roam_sm_found_better_node(si, &ev, ROAM_TRIGGER_SCAN_DONE);
+		/* Kick back in case no better node is found */
+		if (!candidate)
+			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, &ev);
+
+		usteer_ubus_bss_transition_request(si, 1, false, false, 100, candidate->node);
 		si->kick_time = current_time;
 		usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, &ev);
 		break;

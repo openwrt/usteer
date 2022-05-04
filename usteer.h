@@ -336,7 +336,8 @@ int usteer_ubus_bss_transition_request(struct sta_info *si,
 				       uint8_t dialog_token,
 				       bool disassoc_imminent,
 				       bool abridged,
-				       uint8_t validity_period);
+				       uint8_t validity_period,
+				       struct usteer_node *target_node);
 
 struct sta *usteer_sta_get(const uint8_t *addr, bool create);
 struct sta_info *usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create);

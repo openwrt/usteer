@@ -612,6 +612,16 @@ usteer_add_nr_entry(struct usteer_node *ln, struct usteer_node *node)
 }
 
 static void
+usteer_ubus_disassoc_add_neighbor(struct sta_info *si, struct usteer_node *node)
+{
+	void *c;
+
+	c = blobmsg_open_array(&b, "neighbors");
+	usteer_add_nr_entry(si->node, node);
+	blobmsg_close_array(&b, c);
+}
+
+static void
 usteer_ubus_disassoc_add_neighbors(struct sta_info *si)
 {
 	struct usteer_node *node, *last_remote_neighbor = NULL;
@@ -646,7 +656,8 @@ int usteer_ubus_bss_transition_request(struct sta_info *si,
 				       uint8_t dialog_token,
 				       bool disassoc_imminent,
 				       bool abridged,
-				       uint8_t validity_period)
+				       uint8_t validity_period,
+				       struct usteer_node *target_node)
 {
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
 
@@ -656,7 +667,11 @@ int usteer_ubus_bss_transition_request(struct sta_info *si,
 	blobmsg_add_u8(&b, "disassociation_imminent", disassoc_imminent);
 	blobmsg_add_u8(&b, "abridged", abridged);
 	blobmsg_add_u32(&b, "validity_period", validity_period);
-	usteer_ubus_disassoc_add_neighbors(si);
+	if (!target_node) {
+		usteer_ubus_disassoc_add_neighbors(si);
+	} else {
+		usteer_ubus_disassoc_add_neighbor(si, target_node);
+	}
 	return ubus_invoke(ubus_ctx, ln->obj_id, "bss_transition_request", b.head, NULL, 0, 100);
 }
 
