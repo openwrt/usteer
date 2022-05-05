@@ -361,8 +361,10 @@ usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 	case ROAM_TRIGGER_SCAN_DONE:
 		candidate = usteer_roam_sm_found_better_node(si, &ev, ROAM_TRIGGER_SCAN_DONE);
 		/* Kick back in case no better node is found */
-		if (!candidate)
+		if (!candidate) {
 			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, &ev);
+			break;
+		}
 
 		usteer_ubus_bss_transition_request(si, 1, false, false, 100, candidate->node);
 		si->kick_time = current_time + config.roam_kick_delay;
