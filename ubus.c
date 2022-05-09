@@ -700,17 +700,6 @@ int usteer_ubus_band_steering_request(struct sta_info *si)
 	return ubus_invoke(ubus_ctx, ln->obj_id, "bss_transition_request", b.head, NULL, 0, 100);
 }
 
-int usteer_ubus_notify_client_disassoc(struct sta_info *si)
-{
-	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
-
-	blob_buf_init(&b, 0);
-	blobmsg_printf(&b, "addr", MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
-	blobmsg_add_u32(&b, "duration", config.roam_kick_delay / usteer_local_node_get_beacon_interval(ln));
-	usteer_ubus_disassoc_add_neighbors(si);
-	return ubus_invoke(ubus_ctx, ln->obj_id, "wnm_disassoc_imminent", b.head, NULL, 0, 100);
-}
-
 int usteer_ubus_trigger_link_measurement(struct sta_info *si)
 {
 	struct usteer_local_node *ln = container_of(si->node, struct usteer_local_node, node);
