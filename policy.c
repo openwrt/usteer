@@ -143,7 +143,7 @@ find_better_candidate(struct sta_info *si_ref, struct uevent *ev, uint32_t requi
 			ev->select_reasons = reasons;
 		}
 
-		if (candidate && si->signal > candidate->signal)
+		if (!candidate || si->signal > candidate->signal)
 			candidate = si;
 	}
 
