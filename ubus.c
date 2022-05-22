@@ -449,6 +449,7 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 				blobmsg_add_string(&b, "node", usteer_node_name(mr->node));
 				blobmsg_add_u32(&b, "rcpi", mr->rcpi);
 				blobmsg_add_u32(&b, "rsni", mr->rsni);
+				blobmsg_add_u32(&b, "rssi", usteer_measurement_get_rssi(mr));
 				blobmsg_add_u64(&b, "timestamp", mr->timestamp);
 				blobmsg_close_table(&b, t);
 			}

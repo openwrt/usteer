@@ -383,6 +383,8 @@ void usteer_run_hook(const char *name, const char *arg);
 void usteer_dump_node(struct blob_buf *buf, struct usteer_node *node);
 void usteer_dump_host(struct blob_buf *buf, struct usteer_remote_host *host);
 
+int usteer_measurement_get_rssi(struct usteer_measurement_report *report);
+
 struct usteer_measurement_report * usteer_measurement_report_get(struct sta *sta, struct usteer_node *node, bool create);
 void usteer_measurement_report_node_cleanup(struct usteer_node *node);
 void usteer_measurement_report_sta_cleanup(struct sta *sta);

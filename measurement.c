@@ -20,6 +20,21 @@
 LIST_HEAD(measurements);
 static struct usteer_timeout_queue tq;
 
+int
+usteer_measurement_get_rssi(struct usteer_measurement_report *report)
+{
+	/* Apple devices always set the RSNI to 0, while
+	 * it should be set to 255 in case RSNI is unavailable.
+	 *
+	 * For them, RCPI seems to be calculated as RCPI = 255 + (RSSI)
+	 */
+
+	if (!report->rsni)
+		return report->rcpi - 255;
+
+	return (report->rcpi / 2) - 110;
+}
+
 void
 usteer_measurement_report_node_cleanup(struct usteer_node *node)
 {
