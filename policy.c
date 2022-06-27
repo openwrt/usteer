@@ -176,6 +176,9 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 	int min_signal;
 	bool ret = true;
 
+	if (type == EVENT_TYPE_PROBE && !config.probe_steering)
+		goto out;
+
 	if (type == EVENT_TYPE_AUTH)
 		goto out;
 

@@ -160,6 +160,7 @@ struct usteer_config {
 	uint32_t measurement_report_timeout;
 
 	bool assoc_steering;
+	bool probe_steering;
 
 	uint32_t max_neighbor_reports;
 

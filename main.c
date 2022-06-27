@@ -104,6 +104,8 @@ void usteer_init_defaults(void)
 
 	config.link_measurement_interval = 30000;
 
+	config.probe_steering = 1;
+
 	config.roam_kick_delay = 10000;
 	config.roam_process_timeout = 5 * 1000;
 	config.roam_scan_tries = 3;

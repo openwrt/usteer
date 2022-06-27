@@ -56,6 +56,9 @@ config usteer
 	# Allow rejecting assoc requests for steering purposes (0/1)
 	#option assoc_steering 0
 
+	# Allow ignoring probe requests for steering purposes (0/1)
+	#option probe_steering 1
+
 	# Minimum signal-to-noise ratio or signal level (dBm) to allow connections
 	#option min_connect_snr 0
 
