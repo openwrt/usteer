@@ -223,20 +223,17 @@ usteer_check_request(struct sta_info *si, enum usteer_event_type type)
 out:
 	switch (type) {
 	case EVENT_TYPE_PROBE:
-		ev.type = UEV_PROBE_REQ_ACCEPT;
+		ev.type = ret ? UEV_PROBE_REQ_ACCEPT : UEV_PROBE_REQ_DENY;
 		break;
 	case EVENT_TYPE_ASSOC:
-		ev.type = UEV_ASSOC_REQ_ACCEPT;
+		ev.type = ret ? UEV_ASSOC_REQ_ACCEPT : UEV_ASSOC_REQ_DENY;
 		break;
 	case EVENT_TYPE_AUTH:
-		ev.type = UEV_AUTH_REQ_ACCEPT;
+		ev.type = ret ? UEV_AUTH_REQ_ACCEPT : UEV_AUTH_REQ_DENY;
 		break;
 	default:
 		break;
 	}
-
-	if (!ret)
-		ev.type++;
 
 	if (!ret && si->stats[type].blocked_cur >= config.max_retry_band) {
 		ev.reason = UEV_REASON_RETRY_EXCEEDED;
