@@ -42,7 +42,7 @@ config usteer
 	#option seen_policy_timeout 30000
 
 	# Minimum number of stations delta between APs before load balancing policy is active
-	#option load_balancing_threshold 5
+	#option load_balancing_threshold 0
 
 	# Minimum number of stations delta between bands before band steering policy is active
 	#option band_steering_threshold 5
