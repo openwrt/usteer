@@ -29,6 +29,9 @@ below_assoc_threshold(struct usteer_node *node_cur, struct usteer_node *node_new
 	bool ref_5g = node_cur->freq > 4000;
 	bool node_5g = node_new->freq > 4000;
 
+	if (!config.load_balancing_threshold)
+		return false;
+
 	if (ref_5g && !node_5g)
 		n_assoc_new += config.band_steering_threshold;
 	else if (!ref_5g && node_5g)
