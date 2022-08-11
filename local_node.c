@@ -388,6 +388,10 @@ usteer_local_node_assoc_update(struct sta_info *si, struct blob_attr *data)
 static void
 usteer_local_node_update_sta_rrm_wnm(struct sta_info *si, struct blob_attr *client_attr)
 {
+	static const struct blobmsg_policy mbo_policy = {
+		.name = "mbo",
+		.type = BLOBMSG_TYPE_BOOL,
+	};
 	static const struct blobmsg_policy rrm_policy = {
 		.name = "rrm",
 		.type = BLOBMSG_TYPE_ARRAY,
@@ -396,9 +400,17 @@ usteer_local_node_update_sta_rrm_wnm(struct sta_info *si, struct blob_attr *clie
 		.name = "extended_capabilities",
 		.type = BLOBMSG_TYPE_ARRAY,
 	};
-	struct blob_attr *rrm_blob = NULL, *wnm_blob = NULL, *cur;
+	struct blob_attr *mbo_blob = NULL, *rrm_blob = NULL, *wnm_blob = NULL, *cur;
 	int rem;
 	int i = 0;
+
+	/* MBO */
+	blobmsg_parse(&mbo_policy, 1, &mbo_blob, blobmsg_data(client_attr), blobmsg_data_len(client_attr));
+
+	if (mbo_blob)
+		si->mbo = blobmsg_get_u8(mbo_blob);
+	else
+		si->mbo = false;
 
 	/* RRM */
 	blobmsg_parse(&rrm_policy, 1, &rrm_blob, blobmsg_data(client_attr), blobmsg_data_len(client_attr));

@@ -442,6 +442,9 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 			/* BSS-Transition support */
 			blobmsg_add_u8(&b, "bss-transition-management", si->bss_transition);
 
+			/* MBO support */
+			blobmsg_add_u8(&b, "multi-band-operation", si->mbo);
+
 			/* Measurements */
 			a = blobmsg_open_array(&b, "measurements");
 			list_for_each_entry(mr, &si->sta->measurements, sta_list) {
