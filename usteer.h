@@ -246,6 +246,7 @@ struct sta_info {
 
 	uint8_t rrm;
 	bool bss_transition;
+	bool mbo;
 
 	enum roam_trigger_state roam_state;
 	uint8_t roam_tries;
