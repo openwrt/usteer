@@ -400,6 +400,10 @@ usteer_local_node_roam_sm_active(struct sta_info *si, int min_signal)
 	/* Skip on previous kick attempt */
 	if (current_time - si->roam_kick < config.roam_trigger_interval)
 		return false;
+
+	/* Skip if connection is established shorter than the trigger-interval */
+	if (current_time - si->connected_since < config.roam_trigger_interval)
+		return false;
 	
 	return true;
 }
