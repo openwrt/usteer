@@ -264,14 +264,15 @@ static void
 usteer_roam_set_state(struct sta_info *si, enum roam_trigger_state state,
 		      struct uevent *ev)
 {
+	/* NOP in case we remain idle */
+	if (si->roam_state == state && si->roam_state == ROAM_TRIGGER_IDLE) {
+		si->roam_tries = 0;
+		return;
+	}
+
 	si->roam_event = current_time;
 
 	if (si->roam_state == state) {
-		if (si->roam_state == ROAM_TRIGGER_IDLE) {
-			si->roam_tries = 0;
-			return;
-		}
-
 		si->roam_tries++;
 	} else {
 		si->roam_tries = 0;
