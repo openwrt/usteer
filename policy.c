@@ -378,6 +378,32 @@ usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 	return false;
 }
 
+static bool
+usteer_local_node_roam_sm_active(struct sta_info *si, int min_signal)
+{
+	/* Only trigger for connected STAs */
+	if (si->connected != STA_CONNECTED)
+		return false;
+
+	/* Signal has to be below scan / roam threshold */
+	if (si->signal >= min_signal)
+		return false;
+
+	/* Skip on pending kick */
+	if (si->kick_time)
+		return false;
+
+	/* Skip on rejected transition */
+	if (si->bss_transition_response.status_code && current_time - si->bss_transition_response.timestamp < config.steer_reject_timeout)
+		return false;
+
+	/* Skip on previous kick attempt */
+	if (current_time - si->roam_kick < config.roam_trigger_interval)
+		return false;
+	
+	return true;
+}
+
 static void
 usteer_local_node_roam_check(struct usteer_local_node *ln, struct uevent *ev)
 {
@@ -395,10 +421,7 @@ usteer_local_node_roam_check(struct usteer_local_node *ln, struct uevent *ev)
 	min_signal = usteer_snr_to_signal(&ln->node, min_signal);
 
 	list_for_each_entry(si, &ln->node.sta_info, node_list) {
-		if (si->connected != STA_CONNECTED || si->signal >= min_signal ||
-			si->kick_time ||
-			(si->bss_transition_response.status_code && current_time - si->bss_transition_response.timestamp < config.steer_reject_timeout) ||
-		    current_time - si->roam_kick < config.roam_trigger_interval) {
+		if (!usteer_local_node_roam_sm_active(si, min_signal)) {
 			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, ev);
 			continue;
 		}
