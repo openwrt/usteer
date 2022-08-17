@@ -241,7 +241,10 @@ struct sta_info {
 	struct sta_info_stats stats[__EVENT_TYPE_MAX];
 	uint64_t created;
 	uint64_t seen;
+
+	uint64_t connected_since;
 	uint64_t last_connected;
+
 	int signal;
 
 	uint8_t rrm;

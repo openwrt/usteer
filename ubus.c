@@ -403,6 +403,7 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 			blobmsg_add_u32(&b, "signal", si->signal);
 			blobmsg_add_u64(&b, "created", si->created);
 			blobmsg_add_u64(&b, "seen", si->seen);
+			blobmsg_add_u64(&b, "connected_since", si->connected_since);
 			blobmsg_add_u64(&b, "last_connected", si->last_connected);
 
 			t = blobmsg_open_table(&b, "snr-kick");

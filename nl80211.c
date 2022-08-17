@@ -269,6 +269,9 @@ static void nl80211_update_sta(struct usteer_node *node, struct sta_info *si)
 
 	if (tb_sta[NL80211_STA_INFO_SIGNAL_AVG])
 		signal = (int8_t) nla_get_u8(tb_sta[NL80211_STA_INFO_SIGNAL_AVG]);
+	
+	if (tb_sta[NL80211_STA_INFO_CONNECTED_TIME])
+		si->connected_since = current_time - (nla_get_u32(tb_sta[NL80211_STA_INFO_CONNECTED_TIME]) * 1000);
 
 	usteer_sta_info_update(si, signal, true);
 

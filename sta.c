@@ -150,6 +150,7 @@ void usteer_sta_disconnected(struct sta_info *si)
 {
 	si->connected = STA_NOT_CONNECTED;
 	si->kick_time = 0;
+	si->connected_since = 0;
 	usteer_sta_info_update_timeout(si, config.local_sta_timeout);
 }
 
