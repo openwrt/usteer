@@ -381,6 +381,19 @@ usteer_ubus_remote_info(struct ubus_context *ctx, struct ubus_object *obj,
 	return 0;
 }
 
+static const char *usteer_get_roam_sm_name(enum roam_trigger_state state)
+{
+	switch (state) {
+		case ROAM_TRIGGER_IDLE:
+			return "ROAM_TRIGGER_IDLE";
+		case ROAM_TRIGGER_SCAN:
+			return "ROAM_TRIGGER_SCAN";
+		case ROAM_TRIGGER_SCAN_DONE:
+			return "ROAM_TRIGGER_SCAN_DONE";
+	}
+	return "N/A";
+}
+
 static int
 usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *obj,
 				  struct ubus_request_data *req, const char *method,
@@ -402,30 +415,26 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 
 			s = blobmsg_open_table_mac(&b, si->sta->addr);
 			blobmsg_add_u32(&b, "signal", si->signal);
-			blobmsg_add_u64(&b, "created", si->created);
-			blobmsg_add_u64(&b, "seen", si->seen);
-			blobmsg_add_u64(&b, "connected_since", si->connected_since);
-			blobmsg_add_u64(&b, "last_connected", si->last_connected);
+			blobmsg_add_u64(&b, "created", current_time - si->created);
+			blobmsg_add_u64(&b, "connected", current_time - si->connected_since);
 
 			t = blobmsg_open_table(&b, "snr-kick");
 			blobmsg_add_u32(&b, "seen-below", si->below_min_snr);
 			blobmsg_close_table(&b, t);
 
-			t = blobmsg_open_table(&b, "load-kick");
-			blobmsg_add_u32(&b, "count", si->kick_count);
-			blobmsg_close_table(&b, t);
-
 			t = blobmsg_open_table(&b, "roam-state-machine");
+			blobmsg_add_string(&b, "state",usteer_get_roam_sm_name(si->roam_state));
 			blobmsg_add_u32(&b, "tries", si->roam_tries);
-			blobmsg_add_u64(&b, "event", si->roam_event);
-			blobmsg_add_u64(&b, "kick", si->roam_kick);
-			blobmsg_add_u64(&b, "scan_start", si->roam_scan_start);
-			blobmsg_add_u64(&b, "scan_timeout_start", si->roam_scan_timeout_start);
+			blobmsg_add_u64(&b, "event", si->roam_event ? current_time - si->roam_event : 0);
+			blobmsg_add_u32(&b, "kick-count", si->kick_count);
+			blobmsg_add_u64(&b, "last-kick", si->roam_kick ? current_time - si->roam_kick : 0);
+			blobmsg_add_u64(&b, "scan_start", si->roam_scan_start ? current_time - si->roam_scan_start : 0);
+			blobmsg_add_u64(&b, "scan_timeout_start", si->roam_scan_timeout_start ? current_time - si->roam_scan_timeout_start : 0);
 			blobmsg_close_table(&b, t);
 
 			t = blobmsg_open_table(&b, "bss-transition-response");
 			blobmsg_add_u32(&b, "status-code", si->bss_transition_response.status_code);
-			blobmsg_add_u64(&b, "timestamp", si->bss_transition_response.timestamp);
+			blobmsg_add_u64(&b, "age", si->bss_transition_response.timestamp ? current_time - si->bss_transition_response.timestamp : 0);
 			blobmsg_close_table(&b, t);
 
 			/* Beacon measurement modes */
@@ -455,7 +464,7 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 				blobmsg_add_u32(&b, "rcpi", mr->rcpi);
 				blobmsg_add_u32(&b, "rsni", mr->rsni);
 				blobmsg_add_u32(&b, "rssi", usteer_measurement_get_rssi(mr));
-				blobmsg_add_u64(&b, "timestamp", mr->timestamp);
+				blobmsg_add_u64(&b, "age", current_time - mr->timestamp);
 				blobmsg_close_table(&b, t);
 			}
 			blobmsg_close_array(&b, a);
