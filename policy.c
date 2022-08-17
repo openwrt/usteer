@@ -378,15 +378,10 @@ usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 	return false;
 }
 
-static bool
-usteer_local_node_roam_sm_active(struct sta_info *si, int min_signal)
+bool usteer_policy_can_perform_roam(struct sta_info *si)
 {
 	/* Only trigger for connected STAs */
 	if (si->connected != STA_CONNECTED)
-		return false;
-
-	/* Signal has to be below scan / roam threshold */
-	if (si->signal >= min_signal)
 		return false;
 
 	/* Skip on pending kick */
@@ -405,6 +400,19 @@ usteer_local_node_roam_sm_active(struct sta_info *si, int min_signal)
 	if (current_time - si->connected_since < config.roam_trigger_interval)
 		return false;
 	
+	return true;
+}
+
+static bool
+usteer_local_node_roam_sm_active(struct sta_info *si, int min_signal)
+{
+	if (!usteer_policy_can_perform_roam(si))
+		return false;
+
+	/* Signal has to be below scan / roam threshold */
+	if (si->signal >= min_signal)
+		return false;
+
 	return true;
 }
 
