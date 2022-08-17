@@ -751,6 +751,7 @@ void usteer_ubus_kick_client(struct sta_info *si)
 	blobmsg_add_u8(&b, "deauth", 1);
 	ubus_invoke(ubus_ctx, ln->obj_id, "del_client", b.head, NULL, 0, 100);
 	usteer_sta_disconnected(si);
+	si->kick_count++;
 	si->roam_kick = current_time;
 }
 

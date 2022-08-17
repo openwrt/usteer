@@ -477,8 +477,6 @@ usteer_local_node_snr_kick(struct usteer_local_node *ln)
 		if (si->below_min_snr <= min_count)
 			continue;
 
-		si->kick_count++;
-
 		ev.type = UEV_SIGNAL_KICK;
 		ev.threshold.cur = si->signal;
 		ev.count = si->kick_count;
