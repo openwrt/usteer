@@ -321,6 +321,7 @@ usteer_roam_sm_found_better_node(struct sta_info *si, struct uevent *ev, enum ro
 static bool
 usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 {
+	bool disassociation_imminent = true;
 	struct sta_info *candidate;
 	struct uevent ev = {
 		.si_cur = si,
@@ -344,6 +345,7 @@ usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 		if (config.roam_scan_tries && si->roam_tries >= config.roam_scan_tries) {
 			if (!config.roam_scan_timeout) {
 				/* Prepare to kick client */
+				si->transition_request_count = 0;
 				usteer_roam_set_state(si, ROAM_TRIGGER_SCAN_DONE, &ev);
 			} else {
 				/* Kick in scan timeout */
@@ -370,9 +372,39 @@ usteer_roam_trigger_sm(struct usteer_local_node *ln, struct sta_info *si)
 			break;
 		}
 
-		usteer_ubus_bss_transition_request(si, 1, false, false, 100, candidate->node);
-		si->kick_time = current_time + config.roam_kick_delay;
-		usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, &ev);
+		if (!si->transition_request_count) {
+			si->transition_request_start = current_time;
+			si->transition_request_last = 0;
+		}
+
+		/* If the sta acknowledged, we immediately bail */
+		if (si->bss_transition_response.timestamp < si->transition_request_start ||
+				(si->bss_transition_response.timestamp > si->transition_request_start && si->bss_transition_response.status_code)) {
+			/* Send gentle transitions, before setting disassociation_imminent=true. Approximately 1-5 seconds apart. */
+			uint32_t delay = config.roam_kick_delay / 10;
+			if (delay < 1000) {
+				delay = 1000;
+			} else if (delay > 5000) {
+				delay = 5000;
+			}
+			if (current_time < si->transition_request_start + config.roam_kick_delay &&
+					si->transition_request_last && current_time < si->transition_request_last + delay) {
+				/* Too soon to send another transition request */
+				break;
+			}
+
+			disassociation_imminent = si->transition_request_count > 3 &&
+				(current_time - si->transition_request_start) > config.roam_kick_delay;
+		}
+		si->transition_request_count++;
+		si->transition_request_last = current_time;
+
+		usteer_ubus_bss_transition_request(si, 1, disassociation_imminent, false, 100, candidate->node);
+		if (disassociation_imminent) {
+			si->kick_time = current_time + config.roam_kick_delay;
+			usteer_roam_set_state(si, ROAM_TRIGGER_IDLE, &ev);
+		}
+		return true;
 		break;
 	}
 
