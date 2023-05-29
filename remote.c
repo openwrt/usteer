@@ -678,8 +678,10 @@ usteer_init_local_id(void)
 		return -1;
 	}
 
-	if (fread(&local_id, sizeof(local_id), 1, f) < 1)
+	if (fread(&local_id, sizeof(local_id), 1, f) < 1) {
+		fclose(f);
 		return -1;
+	}
 
 	fclose(f);
 	return 0;
