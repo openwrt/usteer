@@ -332,6 +332,7 @@ bool usteer_policy_can_perform_roam(struct sta_info *si);
 void usteer_band_steering_perform_steer(struct usteer_local_node *ln);
 void usteer_band_steering_sta_update(struct sta_info *si);
 bool usteer_band_steering_is_target(struct usteer_local_node *ln, struct usteer_node *node);
+bool usteer_will_band_steer(struct sta_info *si_cur, struct sta_info *si_new);
 
 void usteer_ubus_init(struct ubus_context *ctx);
 void usteer_ubus_kick_client(struct sta_info *si);
