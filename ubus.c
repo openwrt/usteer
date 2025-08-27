@@ -187,6 +187,7 @@ struct cfg_item {
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script), \
 	_cfg(ARRAY_CB, event_log_types), \
+	_cfg(STRING_CB, ignored_stations), \
 	_cfg(ARRAY_CB, ssid_list)
 
 enum cfg_items {

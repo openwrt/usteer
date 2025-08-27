@@ -151,5 +151,8 @@ config usteer
 	# - signal_kick
 	#list event_log_types ''
 
+	# MAC Address to ignore
+	#option ignored_stations ''
+
 	# List of SSIDs to enable steering on
 	#list ssid_list ''

@@ -21,6 +21,8 @@
 #include "node.h"
 #include "event.h"
 
+#include <string.h>
+
 static bool
 below_assoc_threshold(struct usteer_node *node_cur, struct usteer_node *node_new)
 {
@@ -112,6 +114,18 @@ is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 		reasons |= (1 << UEV_SELECT_REASON_LOAD);
 
 	return reasons;
+}
+
+static bool
+uster_policy_sta_to_ignore(struct sta_info *si_cur)
+{
+	char macAddr[24];
+	int i = 0;
+	for (i = 0; i < 6; i++)
+		sprintf(&(macAddr[3 * i]), "%02X:", si_cur->sta->addr[i]);
+	macAddr[17] = 0;
+
+	return (strstr(config.ignored_stations, macAddr) != NULL);
 }
 
 static struct sta_info *
@@ -385,6 +399,10 @@ bool usteer_policy_can_perform_roam(struct sta_info *si)
 	if (si->connected != STA_CONNECTED)
 		return false;
 
+	/* Skip if station should be ignored */
+	if (uster_policy_sta_to_ignore(si))
+		return false;
+
 	/* Skip on pending kick */
 	if (si->kick_time)
 		return false;
@@ -468,6 +486,9 @@ usteer_local_node_snr_kick(struct usteer_local_node *ln)
 		if (si->connected != STA_CONNECTED)
 			continue;
 
+		if (uster_policy_sta_to_ignore(si))
+			continue;
+
 		if (si->signal >= min_signal) {
 			si->below_min_snr = 0;
 			continue;
@@ -537,6 +558,9 @@ usteer_local_node_load_kick(struct usteer_local_node *ln)
 		struct sta_info *tmp;
 
 		if (si->connected != STA_CONNECTED)
+			continue;
+
+		if (uster_policy_sta_to_ignore(si))
 			continue;
 
 		if (is_more_kickable(kick1, si))
