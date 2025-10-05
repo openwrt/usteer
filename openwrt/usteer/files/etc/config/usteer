@@ -1,4 +1,6 @@
 config usteer
+	# OpenWrt guide: https://openwrt.org/docs/guide-user/network/wifi/usteer
+
 	# The network interface for inter-AP communication
 	option 'network' 'lan'
 
@@ -71,6 +73,19 @@ config usteer
 	# Timeout (ms) for which a client will not be steered after rejecting a BSS-transition-request
 	#option steer_reject_timeout 60000
 
+	# Aggressiveness of BSS-transition-request to push a station to another node (AP or band)
+	# 0 = no active transition / 1 = passive BSS-transition-request
+	# 2 = BSS-transition-request with disassociation imminent
+	# 3 = BSS-transition-request with disassociation imminent and timer
+	# 4 = BSS-transition-request with disassociation imminent, timer and forced disassociation
+	#option aggressiveness 3
+
+	# Timeout (s in "1024ms") a station is requested to avoid reassociation after bss transition
+	#option reassociation_delay 30
+
+	# List of MACs (lower case) to set aggressiveness per station (ff:ff:ff:ff:ff,2)
+	#list aggressiveness_mac_list ''
+
 	# Timeout (in ms) after which a association following a disassociation is not seen
 	# as a roam
 	#option roam_process_timeout 5000
@@ -127,6 +142,10 @@ config usteer
 	# Minimal SNR or absolute signal a device has to maintain over band_steering_interval to be
 	# steered to a higher frequency band
 	#option band_steering_min_snr -60
+
+	# Difference that the signal must be better compared to signal was on connection to node.
+	# Avoids conflicts between roaming and band-steering policies.
+	# option band_steering_signal_threshold 5
 
 	# Interval (ms) the device is sent a link-measurement request to help assess
 	# the bi-directional link quality. Setting the interval to 0 disables link-measurements.

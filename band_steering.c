@@ -20,7 +20,24 @@
 
 void usteer_band_steering_sta_update(struct sta_info *si)
 {
-	if (si->signal < usteer_snr_to_signal(si->node, config.band_steering_min_snr))
+	if (si->connected == STA_NOT_CONNECTED) {
+		if (si->band_steering.signal_threshold != NO_SIGNAL) {
+			si->band_steering.signal_threshold = NO_SIGNAL;
+		}
+		return;
+	}
+	if (si->connected != STA_NOT_CONNECTED && si->band_steering.signal_threshold == NO_SIGNAL) {
+		si->band_steering.signal_threshold = si->signal;
+		MSG(DEBUG, "band steering station " MAC_ADDR_FMT " (%s) set threshold %d\n", MAC_ADDR_DATA(si->sta->addr), usteer_node_name(si->node), si->band_steering.signal_threshold);
+		return;
+	}
+
+	/* Adapt signal threshold to actual signal quality */
+	if (si->signal < si->band_steering.signal_threshold) {
+		si->band_steering.signal_threshold--;
+		MSG(DEBUG, "band steering station " MAC_ADDR_FMT " (%s) reduce threshold %d, signal: %d\n", MAC_ADDR_DATA(si->sta->addr), usteer_node_name(si->node), si->band_steering.signal_threshold, si->signal);
+	}
+	if (si->signal < usteer_snr_to_signal(si->node, config.band_steering_min_snr) || si->signal < si->band_steering.signal_threshold + config.band_steering_signal_threshold)
 		si->band_steering.below_snr = true;
 }
 
@@ -60,6 +77,8 @@ void usteer_band_steering_perform_steer(struct usteer_local_node *ln)
 {
 	unsigned int min_count = DIV_ROUND_UP(config.band_steering_interval, config.local_sta_update);
 	struct sta_info *si;
+	uint32_t disassoc_timer;
+	uint32_t validity_period;
 
 	if (!config.band_steering_interval)
 		return;
@@ -91,8 +110,24 @@ void usteer_band_steering_perform_steer(struct usteer_local_node *ln)
 			continue;
 		}
 
-		if (si->bss_transition)
-			usteer_ubus_band_steering_request(si);
+		/* Skip if in validity period */
+		if (current_time < si->roam_transition_request_validity_end)
+			continue;
+
+		if (si->bss_transition) {
+			si->roam_transition_request_validity_end = current_time + 10000;
+			validity_period = 10000 / usteer_local_node_get_beacon_interval(ln); /* ~ 10 seconds */
+			if (si->sta->aggressiveness >= 2) {
+				if (!si->kick_time)
+					si->kick_time = current_time + config.roam_kick_delay;
+				if (si->sta->aggressiveness >= 3)
+					disassoc_timer = (si->kick_time - current_time) / usteer_local_node_get_beacon_interval(ln);
+				else
+					disassoc_timer = 0;
+				usteer_ubus_band_steering_request(si, 0, true, disassoc_timer, true, validity_period);
+			} else
+				usteer_ubus_band_steering_request(si, 0, false, 0, true, validity_period);
+		}
 
 		si->band_steering.below_snr = false;
 	}

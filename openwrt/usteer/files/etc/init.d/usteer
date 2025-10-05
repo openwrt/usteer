@@ -69,8 +69,10 @@ uci_usteer() {
 	uci_option_to_json_bool "$cfg" local_mode
 	uci_option_to_json_bool "$cfg" load_kick_enabled
 	uci_option_to_json_bool "$cfg" assoc_steering
+	uci_option_to_json_bool "$cfg" aggressiveness
 	uci_option_to_json_string "$cfg" node_up_script
 	uci_option_to_json_string_array "$cfg" ssid_list
+	uci_option_to_json_string_array "$cfg" aggressiveness_mac_list
 	uci_option_to_json_string_array "$cfg" event_log_types
 
 	for opt in \
@@ -83,9 +85,9 @@ uci_usteer() {
 		min_connect_snr min_snr min_snr_kick_delay signal_diff_threshold \
 		initial_connect_delay steer_reject_timeout roam_process_timeout\
 		roam_kick_delay roam_scan_tries roam_scan_timeout \
-		roam_scan_snr roam_scan_interval \
-		roam_trigger_snr roam_trigger_interval \
-		band_steering_interval band_steering_min_snr link_measurement_interval \
+		roam_scan_snr roam_scan_interval roam_trigger_snr roam_trigger_interval \
+		link_measurement_interval \
+		band_steering_interval band_steering_min_snr band_steering_signal_threshold \
 		load_kick_threshold load_kick_delay load_kick_min_clients \
 		load_kick_reason_code
 	do
