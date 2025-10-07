@@ -430,6 +430,9 @@ usteer_ubus_get_connected_clients(struct ubus_context *ctx, struct ubus_object *
 			blobmsg_add_u64(&b, "last-kick", si->roam_kick ? current_time - si->roam_kick : 0);
 			blobmsg_add_u64(&b, "scan_start", si->roam_scan_start ? current_time - si->roam_scan_start : 0);
 			blobmsg_add_u64(&b, "scan_timeout_start", si->roam_scan_timeout_start ? current_time - si->roam_scan_timeout_start : 0);
+			blobmsg_add_u32(&b, "transition_request_count", si->transition_request_count);
+			blobmsg_add_u64(&b, "transition_request_start", si->transition_request_start ? current_time - si->transition_request_start : 0);
+			blobmsg_add_u64(&b, "transition_request_last", si->transition_request_last ? current_time - si->transition_request_last : 0);
 			blobmsg_close_table(&b, t);
 
 			t = blobmsg_open_table(&b, "bss-transition-response");

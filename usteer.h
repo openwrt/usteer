@@ -267,6 +267,9 @@ struct sta_info {
 		bool below_snr;
 	} band_steering;
 
+	uint8_t transition_request_count;
+	uint64_t transition_request_start;
+	uint64_t transition_request_last;
 	uint64_t kick_time;
 
 	int kick_count;
