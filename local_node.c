@@ -977,6 +977,46 @@ void config_get_ssid_list(struct blob_buf *buf)
 		blobmsg_add_blob(buf, config.ssid_list);
 }
 
+void config_set_ignored_stations(struct blob_attr *data)
+{
+	int i = 0;
+	const char *val;
+
+	if (!data)
+		return;
+
+	val = blobmsg_get_string(data);
+
+	if (config.ignored_stations)
+		free(config.ignored_stations);
+
+	if (!strlen(val)) {
+		config.ignored_stations = NULL;
+		return;
+	}
+
+	config.ignored_stations = malloc(strlen(val));
+	for (i = 0; i < strlen(val); i++)
+	{
+		if ((val[i] >= 'a') && (val[i] <= 'z'))
+			config.ignored_stations[i] = val[i] + 'A' - 'a';
+		else
+			config.ignored_stations[i] = val[i];
+	}
+
+	config.ignored_stations[i] = 0;
+
+	debug_msg(MSG_DEBUG, "config_set_ignored_stations", 1009, "Station to be ignored: %s", config.ignored_stations);
+}
+
+void config_get_ignored_stations(struct blob_buf *buf)
+{
+	if (!config.ignored_stations)
+		return;
+
+	blobmsg_add_string(buf, "ignored_stations", config.ignored_stations);
+}
+
 void
 usteer_local_nodes_init(struct ubus_context *ctx)
 {

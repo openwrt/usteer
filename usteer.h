@@ -205,6 +205,8 @@ struct usteer_config {
 	const char *node_up_script;
 	uint32_t event_log_mask;
 
+	char *ignored_stations;
+
 	struct blob_attr *ssid_list;
 };
 
@@ -375,6 +377,9 @@ void config_get_node_up_script(struct blob_buf *buf);
 
 void config_set_ssid_list(struct blob_attr *data);
 void config_get_ssid_list(struct blob_buf *buf);
+
+void config_set_ignored_stations(struct blob_attr *data);
+void config_get_ignored_stations(struct blob_buf *buf);
 
 int usteer_interface_init(void);
 void usteer_interface_add(const char *name);
