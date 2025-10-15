@@ -1,0 +1,14 @@
+#!/bin/sh
+set -e
+case "$1" in
+  configure)
+    if ! getent group usteer >/dev/null; then addgroup --system usteer; fi
+    if ! id usteer >/dev/null 2>&1; then
+      adduser --system --ingroup usteer --home /var/lib/usteer --no-create-home \
+        --disabled-login --shell /usr/sbin/nologin usteer
+    fi
+    install -d -o usteer -g usteer -m 0750 /var/lib/usteer
+    systemctl daemon-reload >/dev/null 2>&1 || true
+  ;;
+esac
+exit 0
