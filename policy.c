@@ -26,16 +26,31 @@ below_assoc_threshold(struct usteer_node *node_cur, struct usteer_node *node_new
 {
 	int n_assoc_cur = node_cur->n_assoc;
 	int n_assoc_new = node_new->n_assoc;
-	bool ref_5g = node_cur->freq > 4000;
-	bool node_5g = node_new->freq > 4000;
+	int band_cur, band_new;
 
 	if (!config.load_balancing_threshold)
 		return false;
 
-	if (ref_5g && !node_5g)
-		n_assoc_new += config.band_steering_threshold;
-	else if (!ref_5g && node_5g)
+	/* Determine band priorities: 2.4 GHz = 0, 5 GHz = 1, 6 GHz = 2 */
+	if (is_2ghz_freq(node_cur->freq))
+		band_cur = 0;
+	else if (is_5ghz_freq(node_cur->freq))
+		band_cur = 1;
+	else
+		band_cur = 2;
+
+	if (is_2ghz_freq(node_new->freq))
+		band_new = 0;
+	else if (is_5ghz_freq(node_new->freq))
+		band_new = 1;
+	else
+		band_new = 2;
+
+	/* Apply band steering threshold: prefer higher bands */
+	if (band_new > band_cur)
 		n_assoc_cur += config.band_steering_threshold;
+	else if (band_cur > band_new)
+		n_assoc_new += config.band_steering_threshold;
 
 	n_assoc_new += config.load_balancing_threshold;
 

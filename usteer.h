@@ -284,6 +284,7 @@ struct sta {
 
 	uint8_t seen_2ghz : 1;
 	uint8_t seen_5ghz : 1;
+	uint8_t seen_6ghz : 1;
 
 	uint8_t addr[6];
 };

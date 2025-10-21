@@ -47,4 +47,20 @@ extern void debug_msg_cont(int level, const char *format, ...);
 
 #define __usteer_init __attribute__((constructor))
 
+/* WiFi band detection helpers */
+static inline bool is_2ghz_freq(int freq)
+{
+	return freq < 4000;
+}
+
+static inline bool is_5ghz_freq(int freq)
+{
+	return freq >= 4000 && freq < 5900;
+}
+
+static inline bool is_6ghz_freq(int freq)
+{
+	return freq >= 5900;
+}
+
 #endif
