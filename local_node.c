@@ -132,8 +132,10 @@ usteer_handle_bss_tm_query(struct usteer_local_node *ln, struct blob_attr *msg)
 	query->dialog_token = blobmsg_get_u8(tb[BSS_TM_QUERY_DIALOG_TOKEN]);
 
 	sta_addr = (uint8_t *) ether_aton(blobmsg_get_string(tb[BSS_TM_QUERY_ADDRESS]));
-	if (!sta_addr)
+	if (!sta_addr) {
+		free(query);
 		return 0;
+	}
 
 	memcpy(query->sta_addr, sta_addr, 6);
 
