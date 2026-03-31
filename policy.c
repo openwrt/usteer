@@ -108,7 +108,7 @@ is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 		reasons |= (1 << UEV_SELECT_REASON_SIGNAL);
 
 	if (has_better_load(current_node, new_node) &&
-		!has_better_load(current_node, new_node))
+		!has_better_load(new_node, current_node))
 		reasons |= (1 << UEV_SELECT_REASON_LOAD);
 
 	return reasons;
