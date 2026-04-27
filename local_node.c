@@ -180,10 +180,19 @@ usteer_handle_bss_tm_response(struct usteer_local_node *ln, struct blob_attr *ms
 	si->bss_transition_response.status_code = blobmsg_get_u8(tb[BSS_TM_RESPONSE_STATUS_CODE]);
 	si->bss_transition_response.timestamp = current_time;
 
-	if (si->bss_transition_response.status_code) {
-		/* Cancel imminent kick in case BSS transition was rejected */
-		si->kick_time = 0;
-	}
+	/*
+	 * If a client rejects the BSS transition request (status_code != 0),
+	 * keep the already scheduled fallback kick in place.
+	 *
+	 * The previous behavior cancelled the imminent kick entirely, which left
+	 * usteer retrying soft steering until roam_scan_tries / scan interval logic
+	 * ran again. On devices that consistently reject BSS-TM requests (notably
+	 * some iPhones), that can stretch a simple roam from seconds into many
+	 * minutes.
+	 *
+	 * By preserving kick_time, the existing roam_kick_delay fallback remains
+	 * effective: ask nicely first, then deauth if the client refuses to move.
+	 */
 
 	return 0;
 }
