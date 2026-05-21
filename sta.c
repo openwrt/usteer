@@ -194,10 +194,12 @@ usteer_sta_info_update(struct sta_info *si, int signal, bool avg)
 
 	si->seen = current_time;
 
-	if (si->node->freq < 4000)
+	if (is_2ghz_freq(si->node->freq))
 		si->sta->seen_2ghz = 1;
-	else
+	else if (is_5ghz_freq(si->node->freq))
 		si->sta->seen_5ghz = 1;
+	else if (is_6ghz_freq(si->node->freq))
+		si->sta->seen_6ghz = 1;
 
 	usteer_sta_info_update_timeout(si, config.local_sta_timeout);
 }
