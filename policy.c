@@ -104,7 +104,9 @@ is_better_candidate(struct sta_info *si_cur, struct sta_info *si_new)
 	    !below_assoc_threshold(new_node, current_node))
 		reasons |= (1 << UEV_SELECT_REASON_NUM_ASSOC);
 
-	if (better_signal_strength(current_signal, new_signal))
+	/* If band steering will bounce us back, ignore comparing the signal (note flipped si_new, si_cur) */
+	if (!usteer_will_band_steer(si_new, si_cur) &&
+	    better_signal_strength(current_signal, new_signal))
 		reasons |= (1 << UEV_SELECT_REASON_SIGNAL);
 
 	if (has_better_load(current_node, new_node) &&
@@ -146,7 +148,7 @@ find_better_candidate(struct sta_info *si_ref, struct uevent *ev, uint32_t requi
 			ev->select_reasons = reasons;
 		}
 
-		if (!candidate || si->signal > candidate->signal)
+		if (!candidate || (is_better_candidate(candidate, si) && si->signal > candidate->signal))
 			candidate = si;
 	}
 
