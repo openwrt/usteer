@@ -1,0 +1,28 @@
+#!/usr/bin/make -f
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+
+NL3_CFLAGS := $(shell pkg-config --cflags libnl-genl-3.0 libnl-3.0 libnl-unl)
+NL3_LIBS   := $(shell pkg-config --libs   libnl-genl-3.0 libnl-3.0 libnl-unl)
+
+%:
+	dh $@ --buildsystem=cmake
+
+override_dh_auto_configure:
+	dh_auto_configure -- \
+	  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+	  -DCMAKE_INSTALL_PREFIX=/usr \
+	  -DCMAKE_INSTALL_SYSCONFDIR=/etc \
+	  -DNL_CFLAGS="$(NL3_CFLAGS)" \
+	  -DNL_LIBS="$(NL3_LIBS)" \
+	  -DNL_LDFLAGS="$(NL3_LIBS)"
+
+override_dh_auto_install:
+	dh_auto_install --destdir=$(CURDIR)/debian/tmp
+
+	install -d debian/tmp/usr/bin
+	[ -f obj-*/ap-monitor ] && install -m 0755 obj-*/ap-monitor debian/tmp/usr/bin/ap-monitor || true
+	[ -f obj-*/fakeap ]    && install -m 0755 obj-*/fakeap    debian/tmp/usr/bin/fakeap     || true
+
+override_dh_installsystemd:
+	# Install the unit but do not auto-enable/start
+	dh_installsystemd --name=usteer --no-enable --no-start

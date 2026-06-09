@@ -1,0 +1,36 @@
+[Unit]
+Description=usteer client steering daemon
+Documentation=https://github.com/openwrt/usteer
+After=network-online.target ubusd.service hostapd.service rpcd.service
+Wants=network-online.target ubusd.service hostapd.service rpcd.service
+
+[Service]
+Type=simple
+User=usteer
+Group=usteer
+ExecStart=/usr/sbin/usteerd
+Restart=on-failure
+RestartSec=2
+
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+PrivateDevices=true
+RestrictAddressFamilies=AF_UNIX
+RestrictRealtime=true
+RestrictSUIDSGID=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+SystemCallArchitectures=native
+ReadOnlyPaths=/run/ubus/ubus.sock
+ReadWritePaths=/var/lib/usteer
+
+[Install]
+WantedBy=multi-user.target
+

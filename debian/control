@@ -1,0 +1,33 @@
+Source: usteer
+Section: net
+Priority: optional
+Maintainer: You <you@example.com>
+Build-Depends:
+  debhelper-compat (= 13),
+  cmake,
+  pkg-config,
+  libpcap-dev,
+  libjson-c-dev,
+  libubus-dev,
+  libubox-dev,
+  libnl-3-dev, libnl-genl-3-dev, libnl-unl-dev
+Standards-Version: 4.7.0
+Homepage: https://github.com/openwrt/usteer
+Rules-Requires-Root: no
+
+Package: usteer
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}, ubus, ubusd, hostapd, rpcd
+Recommends: rpcd-mod-hostapd, rpcd-mod-iwinfo
+Description: AP client steering daemon
+ usteer coordinates client roaming between APs using hostapd and ubus.
+ On Debian it runs as a systemd service and uses rpcd/ubus for control.
+ (Optional nl80211 support is enabled automatically if libnl-tiny is present.)
+
+Package: usteer-tools
+Architecture: any
+Multi-Arch: same
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Utilities for usteer (monitoring & testing)
+ Installs 'ap-monitor' (pcap-based passive monitor) and 'fakeap' test tool.
