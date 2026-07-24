@@ -80,9 +80,39 @@ void debug_msg_cont(int level, const char *format, ...)
 	va_end(ap);
 }
 
+
+/* DEBUG: Hex dump helper function for Kirkwood diagnostics */
+void debug_hexdump(const char *prefix, const void *data, int len)
+{
+	const unsigned char *buf = (const unsigned char *)data;
+	int i, j;
+	char hex_str[64], ascii_str[32];
+	
+	MSG(NETWORK, "%s (len=%d):\n", prefix, len);
+	
+	for (i = 0; i < len; i += 16) {
+		hex_str[0] = '\0';
+		ascii_str[0] = '\0';
+		
+		for (j = 0; j < 16 && i + j < len; j++) {
+			unsigned char c = buf[i + j];
+			sprintf(hex_str + strlen(hex_str), "%02x ", c);
+			sprintf(ascii_str + strlen(ascii_str), "%c", (c >= 32 && c < 127) ? c : '.');
+		}
+		
+		MSG(NETWORK, "  %04x: %-48s | %s\n", i, hex_str, ascii_str);
+	}
+}
+
 void usteer_init_defaults(void)
 {
 	memset(&config, 0, sizeof(config));
+
+	config.syslog = true;
+	config.debug_level = MSG_FATAL;
+	
+	config.ipv6 = false;
+	config.local_mode = 0;
 
 	config.sta_block_timeout = 30 * 1000;
 	config.local_sta_timeout = 120 * 1000;
@@ -91,30 +121,34 @@ void usteer_init_defaults(void)
 	config.max_retry_band = 5;
 	config.max_neighbor_reports = 8;
 	config.seen_policy_timeout = 30 * 1000;
+	config.signal_diff_threshold = 8;
 	config.band_steering_threshold = 5;
 	config.load_balancing_threshold = 0;
+	config.local_mode = 0;
 	config.remote_update_interval = 1000;
 	config.initial_connect_delay = 0;
 	config.remote_node_timeout = 10;
 	config.aggressiveness = 3;
 	config.reassociation_delay = 30;
 
-	config.steer_reject_timeout = 60000;
+	config.steer_reject_timeout = 60 * 1000;
 
-	config.band_steering_interval = 30000;
+	config.band_steering_interval = 30 * 1000;
 	config.band_steering_min_snr = -60;
 	config.band_steering_signal_threshold = 5;
 
-	config.link_measurement_interval = 30000;
+	config.link_measurement_interval = 30 * 1000;
 
 	config.probe_steering = 0;
 
-	config.roam_kick_delay = 10000;
+	config.roam_kick_delay = 10 * 1000;
 	config.roam_process_timeout = 5 * 1000;
 	config.roam_scan_tries = 3;
 	config.roam_scan_timeout = 0;
 	config.roam_scan_interval = 10 * 1000;
-	config.roam_trigger_interval = 60 * 1000;
+	config.roam_scan_snr = -65;
+	config.roam_trigger_interval = 30 * 1000;
+	config.roam_trigger_snr = 0;
 
 	config.min_snr_kick_delay = 5 * 1000;
 
@@ -123,8 +157,6 @@ void usteer_init_defaults(void)
 	config.load_kick_delay = 10 * 1000;
 	config.load_kick_min_clients = 10;
 	config.load_kick_reason_code = 5; /* WLAN_REASON_DISASSOC_AP_BUSY */
-
-	config.debug_level = MSG_FATAL;
 }
 
 void usteer_update_time(void)
