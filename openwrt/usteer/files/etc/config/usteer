@@ -143,6 +143,44 @@ config usteer
 	# steered to a higher frequency band
 	#option band_steering_min_snr -60
 
+	# Signal level (dBm) below which a client on an upper band (5/6 GHz) is
+	# down-steered to the next-lower band of the SAME AP (6->5->2.4), but only
+	# when the roaming policy has found no better measured candidate on another
+	# AP. Fixes clients (notably iOS) that cling to a weak 6 GHz signal while a
+	# stronger lower band of the same AP is available. A value of 0 disables it.
+	# Pair with band_downsteer_hold (below) for durability: min_snr-style kicking
+	# tends to fight the client's own band preference and cause an assoc/kick
+	# storm, whereas the directed BSS-TM plus a hold moves the client gently.
+	#option band_downsteer_snr 0
+
+	# Time (ms) after a down-steer during which the client is not allowed back
+	# up to a higher band than it was moved to. Time-based hysteresis that stops
+	# bouncing on a fluctuating signal. 0 disables the hold. NOTE: the hold state
+	# is per-AP (not synced between nodes), so it stops bounce-back to the SAME
+	# AP's upper band but not a jump to another AP's upper band. Use assoc_min_snr
+	# (below) to close that cross-AP gap.
+	#option band_downsteer_hold 30000
+
+	# Admission floor (dBm): refuse a client's association to an UPPER band
+	# (5/6 GHz) on ANY AP when its signal is below this value; 2.4 GHz is always
+	# exempt. This closes cross-AP bouncing onto weak 5/6 GHz that the per-AP
+	# band_downsteer_hold cannot: a client that is weak everywhere on the upper
+	# bands can only land on 2.4 GHz, so it settles instead of thrashing.
+	# Unlike min_snr this is ADMISSION-ONLY -- it never kicks a connected client,
+	# so it cannot cause the assoc/kick storm that min_snr does; and because
+	# 2.4 GHz is exempt the client always has a landing band (no lockout).
+	# Enforced independently of assoc_steering. 0 disables it.
+	#option assoc_min_snr 0
+
+	# Forced down-steer (ms): a plain down-steer is a BSS-TM suggestion that some
+	# clients (notably iOS) ignore, clinging to a dying upper band. If set, then
+	# this many ms after down-steering a client that is still on the upper band
+	# is kicked (deauth). Paired with assoc_min_snr this is safe: the kicked
+	# client cannot reassociate to the weak upper band, so it lands on 2.4/5 GHz
+	# and cannot bounce back -- no kick storm (the failure mode of blind min_snr).
+	# 0 = gentle (suggestion only). Typical: 8000 (give the client ~8s to comply).
+	#option band_downsteer_disassoc 0
+
 	# SNR difference that the signal must be better compared to signal was on connection to node.
 	# Avoids conflicts between roaming and band-steering policies.
 	# A value of 0 disables threshold.

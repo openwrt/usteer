@@ -18,6 +18,32 @@
 #include "usteer.h"
 #include "node.h"
 
+/* Return a node of the SAME AP (local node) on the next-lower band (6->5->2.4).
+ * Used as a fallback when the roam state machine finds no measured better
+ * candidate: the same-AP lower band is guaranteed reachable and physically
+ * stronger than a weak upper band, even though its per-STA signal is unknown. */
+struct usteer_node *usteer_band_downsteer_target(struct usteer_local_node *ln)
+{
+	struct usteer_node *cur = &ln->node;
+	struct usteer_node *node, *best = NULL;
+
+	for_each_local_node(node) {
+		if (node == cur)
+			continue;
+		if (strcmp(cur->ssid, node->ssid) != 0)
+			continue;
+		if (node->freq >= cur->freq)
+			continue;
+		if (!usteer_policy_node_below_max_assoc(node))
+			continue;
+		/* Highest freq strictly below current => one band down. */
+		if (!best || node->freq > best->freq)
+			best = node;
+	}
+
+	return best;
+}
+
 void usteer_band_steering_sta_update(struct sta_info *si)
 {
 	if (si->connected == STA_NOT_CONNECTED) {

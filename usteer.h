@@ -203,6 +203,14 @@ struct usteer_config {
 
 	uint32_t band_steering_interval;
 	int32_t band_steering_min_snr;
+	int32_t band_downsteer_snr;
+	uint32_t band_downsteer_hold;
+	/* Admission floor: refuse assoc to an upper band (>2.4 GHz) below this
+	 * SNR, regardless of assoc_steering; 2.4 GHz exempt. Admission-only. */
+	int32_t assoc_min_snr;
+	/* Forced down-steer: ms after a down-steer BSS-TM to kick (deauth) a
+	 * client still on the upper band. 0 = gentle (BSS-TM suggestion only). */
+	uint32_t band_downsteer_disassoc;
 	uint32_t band_steering_signal_threshold;
 
 	uint32_t link_measurement_interval;
@@ -303,6 +311,10 @@ struct sta {
 
 	uint32_t aggressiveness;
 
+	/* Down-steer hold: block upsteer above downsteer_to_freq until this time. */
+	uint64_t downsteer_hold_until;
+	uint32_t downsteer_to_freq;
+
 	uint8_t addr[6];
 };
 
@@ -350,6 +362,7 @@ bool usteer_policy_can_perform_roam(struct sta_info *si);
 void usteer_band_steering_perform_steer(struct usteer_local_node *ln);
 void usteer_band_steering_sta_update(struct sta_info *si);
 bool usteer_band_steering_is_target(struct usteer_local_node *ln, struct usteer_node *node);
+struct usteer_node *usteer_band_downsteer_target(struct usteer_local_node *ln);
 
 void usteer_ubus_init(struct ubus_context *ctx);
 void usteer_ubus_kick_client(struct sta_info *si, uint32_t kick_reason_code);

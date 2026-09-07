@@ -186,6 +186,11 @@ struct cfg_item {
 	_cfg(U32, load_kick_reason_code), \
 	_cfg(U32, band_steering_interval), \
 	_cfg(I32, band_steering_min_snr), \
+	_cfg(U32, band_steering_signal_threshold), \
+	_cfg(I32, band_downsteer_snr), \
+	_cfg(U32, band_downsteer_hold), \
+	_cfg(I32, assoc_min_snr), \
+	_cfg(U32, band_downsteer_disassoc), \
 	_cfg(U32, link_measurement_interval), \
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script), \

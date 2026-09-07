@@ -10,6 +10,7 @@ Its goal is to optimize roaming behavior of wireless clients (STAs) in a ESS con
  - Policy-based decisions for probe- / association- / authentication requests received from STAs
  - Requesting clients to roam to a different BSS based on SNR / signal-level
  - Channel-load based client steering to different BSS
+ - Same-AP down-steering of clients stuck on a weak upper band (6->5->2.4) when no better AP is available
 
 ## Installation
 

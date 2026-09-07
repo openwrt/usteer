@@ -182,11 +182,13 @@ usteer_handle_bss_tm_response(struct usteer_local_node *ln, struct blob_attr *ms
 	si->bss_transition_response.status_code = blobmsg_get_u8(tb[BSS_TM_RESPONSE_STATUS_CODE]);
 	si->bss_transition_response.timestamp = current_time;
 
-	if (si->bss_transition_response.status_code && si->kick_time && si->sta->aggressiveness) {
-		/* Cancel imminent kick in case BSS transition was rejected */
-		si->kick_time = 0;
-		MSG(VERBOSE, "Kick canceled because transition rejected by station " MAC_ADDR_FMT "\n", MAC_ADDR_DATA(si->sta->addr));
-	}
+	/* PR#16 (openwrt/usteer): KEEP the already-scheduled fallback kick even if
+	 * the client REJECTS the BSS-TM (status_code != 0). Cancelling it here left
+	 * stubborn clients (notably iPhones) stuck for many minutes on soft-steering
+	 * retries and DEFEATED the forced band-downsteer (which schedules kick_time).
+	 * Ask nicely via BSS-TM first; if the client refuses, kick_time still deauths
+	 * it (roam_kick_delay / band_downsteer_disassoc), then assoc_min_snr keeps it
+	 * off the weak upper band. */
 
 	return 0;
 }
