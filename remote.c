@@ -21,6 +21,7 @@
 
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <netinet/in.h>
 #include <net/if.h>
 #include <arpa/inet.h>
@@ -32,10 +33,11 @@
 #include <libubox/usock.h>
 #include "usteer.h"
 #include "remote.h"
+#include "remote-message.h"
 #include "node.h"
 
 static uint32_t local_id;
-static struct uloop_fd remote_fd;
+static struct uloop_fd remote_fd = { .fd = -1 };
 static struct uloop_timeout remote_timer;
 static struct uloop_timeout reload_timer;
 
@@ -485,7 +487,7 @@ static void interface_recv_v6(struct uloop_fd *u, unsigned int events){
 	} while (1);
 }
 
-static void interface_send_msg_v4(struct interface *iface, struct blob_attr *data)
+static int interface_send_msg_v4(struct interface *iface, struct blob_attr *data)
 {
 	static size_t cmsg_data[( CMSG_SPACE(sizeof(struct in_pktinfo)) / sizeof(size_t)) + 1];
 	static struct sockaddr_in a;
@@ -518,11 +520,12 @@ static void interface_send_msg_v4(struct interface *iface, struct blob_attr *dat
 	iov.iov_len = blob_pad_len(data);
 
 	if (sendmsg(remote_fd.fd, &m, 0) < 0)
-		perror("sendmsg");
+		return -errno;
+	return 0;
 }
 
 
-static void interface_send_msg_v6(struct interface *iface, struct blob_attr *data) {
+static int interface_send_msg_v6(struct interface *iface, struct blob_attr *data) {
 	static struct sockaddr_in6 groupSock = {};
 
 	groupSock.sin6_family = AF_INET6;
@@ -532,15 +535,42 @@ static void interface_send_msg_v6(struct interface *iface, struct blob_attr *dat
 	setsockopt(remote_fd.fd, IPPROTO_IPV6, IPV6_MULTICAST_IF, &iface->ifindex, sizeof(iface->ifindex));
 
 	if (sendto(remote_fd.fd, data, blob_pad_len(data), 0, (const struct sockaddr *)&groupSock, sizeof(groupSock)) < 0)
-		perror("sendmsg");
+		return -errno;
+	return 0;
 }
 
-static void interface_send_msg(struct interface *iface, struct blob_attr *data){
+static int interface_emit_msg(struct blob_attr *data, void *priv)
+{
+	struct interface *iface = priv;
+
 	if (config.ipv6) {
-		interface_send_msg_v6(iface, data);
+		return interface_send_msg_v6(iface, data);
 	} else {
-		interface_send_msg_v4(iface, data);
+		return interface_send_msg_v4(iface, data);
 	}
+}
+
+static void interface_send_msg(struct interface *iface, struct blob_attr *data)
+{
+	struct ifreq ifr = {};
+	size_t limit;
+	int ret;
+
+	/* Node notifications can arrive before the remote socket is ready. */
+	if (!remote_fd.registered)
+		return;
+
+	snprintf(ifr.ifr_name, sizeof(ifr.ifr_name), "%s", interface_name(iface));
+	if (ioctl(remote_fd.fd, SIOCGIFMTU, &ifr) < 0) {
+		MSG(FATAL, "Cannot read MTU for %s: %s\n", interface_name(iface), strerror(errno));
+		return;
+	}
+	limit = usteer_message_payload_limit(ifr.ifr_mtu > 0 ? ifr.ifr_mtu : 0,
+					    config.ipv6);
+	ret = usteer_message_send(data, limit, interface_emit_msg, iface);
+	if (ret)
+		MSG(FATAL, "Cannot send remote update on %s (payload limit %zu): %s\n",
+		    interface_name(iface), limit, strerror(-ret));
 }
 
 static void usteer_send_sta_info(struct sta_info *sta)
@@ -744,7 +774,7 @@ static int usteer_create_v6_socket() {
 
 static void usteer_reload_timer(struct uloop_timeout *t) {
 	/* Remove uloop descriptor */
-	if (remote_fd.fd && remote_fd.registered) {
+	if (remote_fd.fd >= 0) {
 		uloop_fd_delete(&remote_fd);
 		close(remote_fd.fd);
 	}
@@ -768,11 +798,11 @@ int usteer_interface_init(void)
 	if (usteer_init_local_id())
 		return -1;
 
-	remote_timer.cb = usteer_send_update_timer;
-	remote_timer.cb(&remote_timer);
-
 	reload_timer.cb = usteer_reload_timer;
 	reload_timer.cb(&reload_timer);
+
+	remote_timer.cb = usteer_send_update_timer;
+	remote_timer.cb(&remote_timer);
 
 	return 0;
 }
