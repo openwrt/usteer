@@ -51,6 +51,7 @@ enum {
 	APMSG_NODE_BSSID,
 	APMSG_NODE_CHANNEL,
 	APMSG_NODE_OP_CLASS,
+	APMSG_NODE_KNOWN_STA,
 	__APMSG_NODE_MAX
 };
 
@@ -68,6 +69,7 @@ struct apmsg_node {
 	struct blob_attr *stations;
 	struct blob_attr *rrm_nr;
 	struct blob_attr *node_info;
+	struct blob_attr *known_sta;
 };
 
 enum {
@@ -90,8 +92,22 @@ struct apmsg_sta {
 	int last_connected;
 };
 
+enum {
+	APMSG_KNOWN_ADDR,
+	APMSG_KNOWN_SIGNAL,
+	APMSG_KNOWN_AGE,
+	__APMSG_KNOWN_MAX
+};
+
+struct apmsg_known_sta {
+	uint8_t addr[6];
+	int signal;
+	int age;
+};
+
 bool parse_apmsg(struct apmsg *msg, struct blob_attr *data);
 bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data);
 bool parse_apmsg_sta(struct apmsg_sta *msg, struct blob_attr *data);
+bool parse_apmsg_known_sta(struct apmsg_known_sta *msg, struct blob_attr *data);
 
 #endif

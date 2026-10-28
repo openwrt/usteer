@@ -18,6 +18,8 @@
  */
 
 #include "usteer.h"
+#include "known.h"
+#include "ssid_config.h"
 
 static int
 avl_macaddr_cmp(const void *k1, const void *k2, void *ptr)
@@ -76,18 +78,19 @@ usteer_sta_info_timeout(struct usteer_timeout_queue *q, struct usteer_timeout *t
 	usteer_sta_info_del(si);
 }
 
-static void
-usteer_sta_update_aggressiveness(struct sta *sta)
+void
+usteer_sta_update_aggressiveness(struct sta_info *si)
 {
 	struct blob_attr *cur;
 	int rem;
 	char sta_mac[18];
 	char config_entry[20];
 	char config_mac[18];
-	
-	sprintf(sta_mac, MAC_ADDR_FMT, MAC_ADDR_DATA(sta->addr));
-	sta->aggressiveness = config.aggressiveness;
-	blobmsg_for_each_attr(cur, config.aggressiveness_mac_list, rem) {
+	const char *ssid = si->node->ssid;
+
+	sprintf(sta_mac, MAC_ADDR_FMT, MAC_ADDR_DATA(si->sta->addr));
+	si->aggressiveness = SSID_CFG(ssid, aggressiveness);
+	blobmsg_for_each_attr(cur, SSID_CFG(ssid, aggressiveness_mac_list), rem) {
 		strcpy(config_entry, blobmsg_get_string(cur));
 		if (strlen(config_entry) != 19)
 			continue;
@@ -95,9 +98,24 @@ usteer_sta_update_aggressiveness(struct sta *sta)
 		config_mac[17] = '\0';
 		if (strcmp(config_mac, sta_mac) != 0)
 			continue;
-		sta->aggressiveness = config_entry[18] - '0';
+		si->aggressiveness = config_entry[18] - '0';
 		break;
 	}
+}
+
+/* Station infos only evaluate their aggressiveness when they are created.
+ * Stations that were already known when a new config arrives (or that were
+ * created before the first config was loaded) would keep the old value,
+ * so re-evaluate all of them after every config update. */
+void
+usteer_sta_update_all_aggressiveness(void)
+{
+	struct sta_info *si;
+	struct sta *sta;
+
+	avl_for_each_element(&stations, sta, avl)
+		list_for_each_entry(si, &sta->nodes, list)
+			usteer_sta_update_aggressiveness(si);
 }
 
 struct sta_info *
@@ -129,7 +147,7 @@ usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create)
 	si->created = current_time;
 	*create = true;
 
-	usteer_sta_update_aggressiveness(sta);
+	usteer_sta_update_aggressiveness(si);
 
 	/* Node is by default not connected. */
 	usteer_sta_disconnected(si);
@@ -177,7 +195,7 @@ void usteer_sta_disconnected(struct sta_info *si)
 	si->connected = STA_NOT_CONNECTED;
 	si->kick_time = 0;
 	si->connected_since = 0;
-	usteer_sta_info_update_timeout(si, config.local_sta_timeout);
+	usteer_sta_info_update_timeout(si, SSID_CFG(si->node->ssid, local_sta_timeout));
 }
 
 void
@@ -190,6 +208,21 @@ usteer_sta_info_update(struct sta_info *si, int signal, bool avg)
 	if (signal != NO_SIGNAL) {
 		si->signal = signal;
 		usteer_band_steering_sta_update(si);
+
+		/* Only record known-station data from the periodic nl80211
+		 * poll of stations hostapd currently reports as associated
+		 * (avg == true; see nl80211_update_sta()) - not from bare
+		 * PROBE/AUTH/ASSOC events (avg == false), which are
+		 * frequently sent from randomized, throwaway MAC addresses
+		 * (privacy MAC randomization on phones/tablets scanning
+		 * nearby networks without ever connecting) and would
+		 * otherwise flood the known-station list with junk that is
+		 * never seen again. Note si->connected is not yet updated
+		 * to STA_CONNECTED at this point in the nl80211 poll cycle
+		 * (see usteer_local_node_set_assoc()), so it can't be used
+		 * as the gate here. */
+		if (si->node->type == NODE_TYPE_LOCAL && avg)
+			usteer_known_update(si->node, si->sta->addr, signal);
 	}
 
 	si->seen = current_time;
@@ -199,7 +232,7 @@ usteer_sta_info_update(struct sta_info *si, int signal, bool avg)
 	else
 		si->sta->seen_5ghz = 1;
 
-	usteer_sta_info_update_timeout(si, config.local_sta_timeout);
+	usteer_sta_info_update_timeout(si, SSID_CFG(si->node->ssid, local_sta_timeout));
 }
 
 bool
@@ -221,7 +254,7 @@ usteer_handle_sta_event(struct usteer_node *node, const uint8_t *addr,
 	si->stats[type].requests++;
 
 	diff = si->stats[type].blocked_last_time - current_time;
-	if (diff > config.sta_block_timeout)
+	if (diff > SSID_CFG(node->ssid, sta_block_timeout))
 		si->stats[type].blocked_cur = 0;
 
 	ret = usteer_check_request(si, type);

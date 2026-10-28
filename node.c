@@ -46,6 +46,22 @@ struct usteer_node *usteer_node_by_bssid(uint8_t *bssid) {
 	return NULL;
 }
 
+struct usteer_node *usteer_node_by_name(const char *name) {
+	struct usteer_local_node *ln;
+	struct usteer_remote_node *rn;
+
+	ln = avl_find_element(&local_nodes, name, ln, node.avl);
+	if (ln)
+		return &ln->node;
+
+	for_each_remote_node(rn) {
+		if (!strcmp(usteer_node_name(&rn->node), name))
+			return &rn->node;
+	}
+
+	return NULL;
+}
+
 void usteer_node_set_blob(struct blob_attr **dest, struct blob_attr *val)
 {
 	int new_len;

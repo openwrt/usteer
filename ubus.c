@@ -27,6 +27,8 @@
 #include "usteer.h"
 #include "node.h"
 #include "event.h"
+#include "known.h"
+#include "ssid_config.h"
 
 static struct blob_buf b;
 static KVLIST(host_info, kvlist_blob_len);
@@ -67,6 +69,11 @@ static struct blobmsg_policy client_arg[] = {
 	{ .name = "address", .type = BLOBMSG_TYPE_STRING, },
 };
 
+static struct blobmsg_policy known_arg[] = {
+	{ .name = "node", .type = BLOBMSG_TYPE_STRING, },
+	{ .name = "address", .type = BLOBMSG_TYPE_STRING, },
+};
+
 static void
 usteer_ubus_add_stats(struct sta_info_stats *stats, const char *name)
 {
@@ -77,6 +84,32 @@ usteer_ubus_add_stats(struct sta_info_stats *stats, const char *name)
 	blobmsg_add_u32(&b, "blocked_cur", stats->blocked_cur);
 	blobmsg_add_u32(&b, "blocked_total", stats->blocked_total);
 	blobmsg_close_table(&b, s);
+}
+
+static int
+usteer_ubus_delete_known(struct ubus_context *ctx, struct ubus_object *obj,
+			 struct ubus_request_data *req, const char *method,
+			 struct blob_attr *msg)
+{
+	struct blob_attr *tb[2];
+	struct usteer_node *node;
+	uint8_t *mac;
+
+	blobmsg_parse(known_arg, 2, tb, blob_data(msg), blob_len(msg));
+	if (!tb[0] || !tb[1])
+		return UBUS_STATUS_INVALID_ARGUMENT;
+
+	node = usteer_node_by_name(blobmsg_data(tb[0]));
+	if (!node)
+		return UBUS_STATUS_NOT_FOUND;
+
+	mac = (uint8_t *) ether_aton(blobmsg_data(tb[1]));
+	if (!mac)
+		return UBUS_STATUS_INVALID_ARGUMENT;
+
+	usteer_known_delete(node, mac);
+
+	return 0;
 }
 
 static int
@@ -190,7 +223,10 @@ struct cfg_item {
 	_cfg(ARRAY_CB, interfaces), \
 	_cfg(STRING_CB, node_up_script), \
 	_cfg(ARRAY_CB, event_log_types), \
-	_cfg(ARRAY_CB, ssid_list)
+	_cfg(ARRAY_CB, ssid_list), \
+	_cfg(BOOL, known_stations), \
+	_cfg(U32, known_stations_timeout), \
+	_cfg(ARRAY_CB, ssid_configs)
 
 enum cfg_items {
 #define _cfg(_type, _name) CFG_##_name
@@ -285,6 +321,7 @@ usteer_ubus_set_config(struct ubus_context *ctx, struct ubus_object *obj,
 		}
 	}
 
+	usteer_sta_update_all_aggressiveness();
 	usteer_interface_init();
 
 	return 0;
@@ -316,6 +353,21 @@ void usteer_dump_node(struct blob_buf *buf, struct usteer_node *node)
 		blobmsg_add_field(buf, BLOBMSG_TYPE_TABLE, "node_info",
 				  blob_data(node->node_info),
 				  blob_len(node->node_info));
+
+	if (config.known_stations && !list_empty(&node->known_sta)) {
+		struct usteer_known_sta *ks;
+		void *k, *e;
+
+		k = blobmsg_open_array(buf, "known_sta");
+		list_for_each_entry(ks, &node->known_sta, list) {
+			e = blobmsg_open_table(buf, "");
+			blobmsg_printf(buf, "address", MAC_ADDR_FMT, MAC_ADDR_DATA(ks->addr));
+			blobmsg_add_u32(buf, "signal", ks->signal);
+			blobmsg_add_u32(buf, "age", current_time - ks->timestamp);
+			blobmsg_close_table(buf, e);
+		}
+		blobmsg_close_array(buf, k);
+	}
 
 	blobmsg_close_table(buf, c);
 }
@@ -580,6 +632,7 @@ static const struct ubus_method usteer_methods[] = {
 	UBUS_METHOD_NOARG("connected_clients", usteer_ubus_get_connected_clients),
 	UBUS_METHOD_NOARG("get_clients", usteer_ubus_get_clients),
 	UBUS_METHOD("get_client_info", usteer_ubus_get_client_info, client_arg),
+	UBUS_METHOD("delete_known", usteer_ubus_delete_known, known_arg),
 	UBUS_METHOD_NOARG("get_config", usteer_ubus_get_config),
 	UBUS_METHOD("set_config", usteer_ubus_set_config, config_policy),
 	UBUS_METHOD("update_config", usteer_ubus_set_config, config_policy),
@@ -645,10 +698,11 @@ usteer_ubus_disassoc_add_neighbors(struct sta_info *si)
 	struct usteer_node *node, *last_remote_neighbor = NULL;
 	int i = 0;
 	void *c;
+	uint32_t max_neighbor_reports = SSID_CFG(si->node->ssid, max_neighbor_reports);
 
 	c = blobmsg_open_array(&b, "neighbors");
 	for_each_local_node(node) {
-		if (i >= config.max_neighbor_reports)
+		if (i >= max_neighbor_reports)
 			break;
 		if (si->node == node)
 			continue;
@@ -656,7 +710,7 @@ usteer_ubus_disassoc_add_neighbors(struct sta_info *si)
 			i++;
 	}
 
-	while (i < config.max_neighbor_reports) {
+	while (i < max_neighbor_reports) {
 		node = usteer_node_get_next_neighbor(si->node, last_remote_neighbor);
 		if (!node) {
 			/* No more nodes available */

@@ -66,6 +66,7 @@ bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data)
 		[APMSG_NODE_NODE_INFO] = { .type = BLOB_ATTR_NESTED },
 		[APMSG_NODE_CHANNEL] = { .type = BLOB_ATTR_INT32 },
 		[APMSG_NODE_OP_CLASS] = { .type = BLOB_ATTR_INT32 },
+		[APMSG_NODE_KNOWN_STA] = { .type = BLOB_ATTR_NESTED },
 	};
 	struct blob_attr *tb[__APMSG_NODE_MAX];
 	struct blob_attr *cur;
@@ -119,6 +120,7 @@ bool parse_apmsg_node(struct apmsg_node *msg, struct blob_attr *data)
 	}
 
 	msg->node_info = tb[APMSG_NODE_NODE_INFO];
+	msg->known_sta = tb[APMSG_NODE_KNOWN_STA];
 
 	return true;
 }
@@ -153,6 +155,29 @@ bool parse_apmsg_sta(struct apmsg_sta *msg, struct blob_attr *data)
 	msg->timeout = blob_get_int32(tb[APMSG_STA_TIMEOUT]);
 	msg->connected = blob_get_int8(tb[APMSG_STA_CONNECTED]);
 	msg->last_connected = blob_get_int32(tb[APMSG_STA_LAST_CONNECTED]);
+
+	return true;
+}
+
+bool parse_apmsg_known_sta(struct apmsg_known_sta *msg, struct blob_attr *data)
+{
+	static const struct blob_attr_info policy[__APMSG_KNOWN_MAX] = {
+		[APMSG_KNOWN_ADDR] = { .type = BLOB_ATTR_BINARY },
+		[APMSG_KNOWN_SIGNAL] = { .type = BLOB_ATTR_INT32 },
+		[APMSG_KNOWN_AGE] = { .type = BLOB_ATTR_INT32 },
+	};
+	struct blob_attr *tb[__APMSG_KNOWN_MAX];
+
+	blob_parse(data, tb, policy, __APMSG_KNOWN_MAX);
+	if (!tb[APMSG_KNOWN_ADDR] || !tb[APMSG_KNOWN_SIGNAL] || !tb[APMSG_KNOWN_AGE])
+		return false;
+
+	if (blob_len(tb[APMSG_KNOWN_ADDR]) != sizeof(msg->addr))
+		return false;
+
+	memcpy(msg->addr, blob_data(tb[APMSG_KNOWN_ADDR]), sizeof(msg->addr));
+	msg->signal = blob_get_int32(tb[APMSG_KNOWN_SIGNAL]);
+	msg->age = blob_get_int32(tb[APMSG_KNOWN_AGE]);
 
 	return true;
 }

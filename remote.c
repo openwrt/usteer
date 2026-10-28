@@ -33,6 +33,8 @@
 #include "usteer.h"
 #include "remote.h"
 #include "node.h"
+#include "known.h"
+#include "ssid_config.h"
 
 static uint32_t local_id;
 static struct uloop_fd remote_fd;
@@ -192,7 +194,7 @@ interface_add_station(struct usteer_remote_node *node, struct blob_attr *data)
 			if (!local_si)
 				continue;
 
-			if (current_time - local_si->last_connected < config.roam_process_timeout) {
+			if (current_time - local_si->last_connected < SSID_CFG(si->node->ssid, roam_process_timeout)) {
 				node->node.roam_events.target++;
 				break;
 			}
@@ -200,6 +202,24 @@ interface_add_station(struct usteer_remote_node *node, struct blob_attr *data)
 	}
 
 	usteer_sta_info_update_timeout(si, msg.timeout);
+
+	/* Cold start: we now know this station exists and is connected
+	 * somewhere in the network. Seed a "worth exploring" placeholder
+	 * on our own same-SSID local nodes that don't have any data for
+	 * it yet, so the peer that actually holds the connection sees a
+	 * candidate here and tries pushing it over (see known.h). */
+	if (si->connected == STA_CONNECTED) {
+		for_each_local_node(local_node) {
+			if (strcmp(local_node->ssid, node->node.ssid) != 0)
+				continue;
+			if (!config.known_stations)
+				continue;
+			if (usteer_known_find(local_node, msg.addr))
+				continue;
+
+			usteer_known_update(local_node, msg.addr, 0);
+		}
+	}
 }
 
 static void
@@ -211,6 +231,7 @@ remote_node_free(struct usteer_remote_node *node)
 	list_del(&node->host_list);
 	usteer_sta_node_cleanup(&node->node);
 	usteer_measurement_report_node_cleanup(&node->node);
+	usteer_known_node_free(&node->node);
 	free(node);
 
 	if (!list_empty(&host->nodes))
@@ -266,6 +287,7 @@ interface_get_node(struct usteer_remote_host *host, const char *name)
 	node->host = host;
 	INIT_LIST_HEAD(&node->node.sta_info);
 	INIT_LIST_HEAD(&node->node.measurements);
+	usteer_known_node_init(&node->node, NULL);
 
 	list_add_tail(&node->list, &remote_nodes);
 	list_add_tail(&node->host_list, &host->nodes);
@@ -304,6 +326,26 @@ interface_add_node(struct usteer_remote_host *host, struct blob_attr *data)
 
 	blob_for_each_attr(cur, msg.stations, rem)
 		interface_add_station(node, cur);
+
+	if (config.known_stations && msg.known_sta) {
+		struct apmsg_known_sta kmsg;
+
+		blob_for_each_attr(cur, msg.known_sta, rem) {
+			struct usteer_known_sta *ks;
+
+			if (!parse_apmsg_known_sta(&kmsg, cur))
+				continue;
+
+			ks = usteer_known_find(&node->node, kmsg.addr);
+			if (!ks) {
+				ks = calloc(1, sizeof(*ks));
+				memcpy(ks->addr, kmsg.addr, sizeof(ks->addr));
+				list_add(&ks->list, &node->node.known_sta);
+			}
+			ks->signal = kmsg.signal;
+			ks->timestamp = current_time - kmsg.age;
+		}
+	}
 }
 
 static void
@@ -555,7 +597,7 @@ static void usteer_send_sta_info(struct sta_info *sta)
 	blob_put_int32(&buf, APMSG_STA_SIGNAL, sta->signal);
 	blob_put_int32(&buf, APMSG_STA_SEEN, seen);
 	blob_put_int32(&buf, APMSG_STA_LAST_CONNECTED, last_connected);
-	blob_put_int32(&buf, APMSG_STA_TIMEOUT, config.local_sta_timeout - seen);
+	blob_put_int32(&buf, APMSG_STA_TIMEOUT, SSID_CFG(sta->node->ssid, local_sta_timeout) - seen);
 	blob_nest_end(&buf, c);
 }
 
@@ -598,6 +640,23 @@ static void usteer_send_node(struct usteer_node *node, struct sta_info *sta)
 	}
 
 	blob_nest_end(&buf, s);
+
+	if (config.known_stations && !list_empty(&node->known_sta)) {
+		struct usteer_known_sta *ks;
+		void *k, *e;
+		int age;
+
+		k = blob_nest_start(&buf, APMSG_NODE_KNOWN_STA);
+		list_for_each_entry(ks, &node->known_sta, list) {
+			age = current_time - ks->timestamp;
+			e = blob_nest_start(&buf, 0);
+			blob_put(&buf, APMSG_KNOWN_ADDR, ks->addr, sizeof(ks->addr));
+			blob_put_int32(&buf, APMSG_KNOWN_SIGNAL, ks->signal);
+			blob_put_int32(&buf, APMSG_KNOWN_AGE, age);
+			blob_nest_end(&buf, e);
+		}
+		blob_nest_end(&buf, k);
+	}
 
 	blob_nest_end(&buf, c);
 }

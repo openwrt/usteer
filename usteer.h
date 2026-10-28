@@ -89,6 +89,9 @@ struct usteer_node {
 	char ssid[33];
 	uint8_t bssid[6];
 
+	struct list_head known_sta;
+	char *known_name;
+
 	bool disabled;
 	int freq;
 	int channel;
@@ -219,6 +222,9 @@ struct usteer_config {
 	uint32_t event_log_mask;
 
 	struct blob_attr *ssid_list;
+
+	bool known_stations;
+	uint32_t known_stations_timeout;
 };
 
 struct usteer_bss_tm_query {
@@ -248,6 +254,12 @@ struct sta_info {
 
 	struct usteer_node *node;
 	struct sta *sta;
+
+	/* Computed from this node's SSID (see usteer_sta_update_aggressiveness()
+	 * in sta.c) - lives here rather than on struct sta because a station
+	 * seen on multiple SSIDs must use each SSID's own aggressiveness for
+	 * decisions made on that SSID's nodes. */
+	uint32_t aggressiveness;
 
 	struct usteer_timeout timeout;
 
@@ -300,8 +312,6 @@ struct sta {
 
 	uint8_t seen_2ghz : 1;
 	uint8_t seen_5ghz : 1;
-
-	uint32_t aggressiveness;
 
 	uint8_t addr[6];
 };
@@ -370,6 +380,8 @@ int usteer_ubus_bss_transition_request(struct sta_info *si,
 
 struct sta *usteer_sta_get(const uint8_t *addr, bool create);
 struct sta_info *usteer_sta_info_get(struct sta *sta, struct usteer_node *node, bool *create);
+void usteer_sta_update_aggressiveness(struct sta_info *si);
+void usteer_sta_update_all_aggressiveness(void);
 
 bool usteer_sta_supports_beacon_measurement_mode(struct sta_info *si, enum usteer_beacon_measurement_mode mode);
 bool usteer_sta_supports_link_measurement(struct sta_info *si);
@@ -387,6 +399,7 @@ void usteer_node_set_blob(struct blob_attr **dest, struct blob_attr *val);
 struct usteer_local_node *usteer_local_node_by_bssid(uint8_t *bssid);
 struct usteer_remote_node *usteer_remote_node_by_bssid(uint8_t *bssid);
 struct usteer_node *usteer_node_by_bssid(uint8_t *bssid);
+struct usteer_node *usteer_node_by_name(const char *name);
 
 struct usteer_node *usteer_node_get_next_neighbor(struct usteer_node *current_node, struct usteer_node *last);
 bool usteer_check_request(struct sta_info *si, enum usteer_event_type type);

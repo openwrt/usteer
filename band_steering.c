@@ -17,16 +17,19 @@
 
 #include "usteer.h"
 #include "node.h"
+#include "ssid_config.h"
 
 void usteer_band_steering_sta_update(struct sta_info *si)
 {
+	uint32_t signal_threshold = SSID_CFG(si->node->ssid, band_steering_signal_threshold);
+
 	if (si->connected == STA_NOT_CONNECTED) {
 		if (si->band_steering.signal_threshold != NO_SIGNAL) {
 			si->band_steering.signal_threshold = NO_SIGNAL;
 		}
 		return;
 	}
-	if (config.band_steering_signal_threshold)
+	if (signal_threshold)
 	{
 		if (si->connected != STA_NOT_CONNECTED && si->band_steering.signal_threshold == NO_SIGNAL)
 		{
@@ -40,10 +43,10 @@ void usteer_band_steering_sta_update(struct sta_info *si)
 			si->band_steering.signal_threshold--;
 			MSG(DEBUG, "band steering station " MAC_ADDR_FMT " (%s) reduce threshold %d, signal: %d\n", MAC_ADDR_DATA(si->sta->addr), usteer_node_name(si->node), si->band_steering.signal_threshold, si->signal);
 		}
-		if (si->signal < si->band_steering.signal_threshold + config.band_steering_signal_threshold)
+		if (si->signal < si->band_steering.signal_threshold + signal_threshold)
 			si->band_steering.below_snr = true;
 	}
-	if (si->signal < usteer_snr_to_signal(si->node, config.band_steering_min_snr))
+	if (si->signal < usteer_snr_to_signal(si->node, SSID_CFG(si->node->ssid, band_steering_min_snr)))
 		si->band_steering.below_snr = true;
 }
 
@@ -81,12 +84,13 @@ static bool usteer_band_steering_has_target_iface(struct usteer_local_node *ln)
 
 void usteer_band_steering_perform_steer(struct usteer_local_node *ln)
 {
-	unsigned int min_count = DIV_ROUND_UP(config.band_steering_interval, config.local_sta_update);
+	uint32_t band_steering_interval = SSID_CFG(ln->node.ssid, band_steering_interval);
+	unsigned int min_count = DIV_ROUND_UP(band_steering_interval, SSID_CFG(ln->node.ssid, local_sta_update));
 	struct sta_info *si;
 	uint32_t disassoc_timer;
 	uint32_t validity_period;
 
-	if (!config.band_steering_interval)
+	if (!band_steering_interval)
 		return;
 
 	/* Band-Steering is only available on 2.4 GHz interfaces */
@@ -123,10 +127,10 @@ void usteer_band_steering_perform_steer(struct usteer_local_node *ln)
 		if (si->bss_transition) {
 			si->roam_transition_request_validity_end = current_time + 10000;
 			validity_period = 10000 / usteer_local_node_get_beacon_interval(ln); /* ~ 10 seconds */
-			if (si->sta->aggressiveness >= 2) {
+			if (si->aggressiveness >= 2) {
 				if (!si->kick_time)
-					si->kick_time = current_time + config.roam_kick_delay;
-				if (si->sta->aggressiveness >= 3)
+					si->kick_time = current_time + SSID_CFG(si->node->ssid, roam_kick_delay);
+				if (si->aggressiveness >= 3)
 					disassoc_timer = (si->kick_time - current_time) / usteer_local_node_get_beacon_interval(ln);
 				else
 					disassoc_timer = 0;

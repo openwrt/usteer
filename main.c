@@ -26,6 +26,7 @@
 #include "usteer.h"
 #include "event.h"
 #include "node.h"
+#include "known.h"
 
 struct ubus_context *ubus_ctx;
 struct usteer_config config = {};
@@ -228,6 +229,7 @@ int main(int argc, char **argv)
 	} else {
 		usteer_ubus_init(ubus_ctx);
 		usteer_local_nodes_init(ubus_ctx);
+		usteer_known_init();
 	}
 	uloop_run();
 

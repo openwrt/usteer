@@ -30,6 +30,8 @@
 #include <libubox/blobmsg_json.h>
 #include "usteer.h"
 #include "node.h"
+#include "known.h"
+#include "ssid_config.h"
 
 AVL_TREE(local_nodes, avl_strcmp, false, NULL);
 static struct blob_buf b;
@@ -72,6 +74,7 @@ usteer_free_node(struct ubus_context *ctx, struct usteer_local_node *ln)
 	usteer_local_node_state_reset(ln);
 	usteer_sta_node_cleanup(&ln->node);
 	usteer_measurement_report_node_cleanup(&ln->node);
+	usteer_known_node_free(&ln->node);
 	uloop_timeout_cancel(&ln->update);
 	uloop_timeout_cancel(&ln->bss_tm_queries_timeout);
 	avl_delete(&local_nodes, &ln->node.avl);
@@ -182,7 +185,7 @@ usteer_handle_bss_tm_response(struct usteer_local_node *ln, struct blob_attr *ms
 	si->bss_transition_response.status_code = blobmsg_get_u8(tb[BSS_TM_RESPONSE_STATUS_CODE]);
 	si->bss_transition_response.timestamp = current_time;
 
-	if (si->bss_transition_response.status_code && si->kick_time && si->sta->aggressiveness) {
+	if (si->bss_transition_response.status_code && si->kick_time && si->aggressiveness) {
 		/* Cancel imminent kick in case BSS transition was rejected */
 		si->kick_time = 0;
 		MSG(VERBOSE, "Kick canceled because transition rejected by station " MAC_ADDR_FMT "\n", MAC_ADDR_DATA(si->sta->addr));
@@ -375,7 +378,7 @@ usteer_local_node_assoc_update(struct sta_info *si, struct blob_attr *data)
 				if (!remote_si)
 					continue;
 
-				if (current_time - remote_si->last_connected < config.roam_process_timeout) {
+				if (current_time - remote_si->last_connected < SSID_CFG(si->node->ssid, roam_process_timeout)) {
 					rn->node.roam_events.source++;
 					/* Don't abort looking for roam sources here.
 					 * The client might have roamed via another node
@@ -612,15 +615,17 @@ usteer_local_node_prepare_rrm_set(struct usteer_local_node *ln)
 	int i = 0;
 	void *c;
 
+	uint32_t max_neighbor_reports = SSID_CFG(ln->node.ssid, max_neighbor_reports);
+
 	c = blobmsg_open_array(&b, "list");
 	for_each_local_node(node) {
-		if (i >= config.max_neighbor_reports)
+		if (i >= max_neighbor_reports)
 			break;
 		if (usteer_add_rrm_data(ln, node))
 			i++;
 	}
 
-	while (i < config.max_neighbor_reports) {
+	while (i < max_neighbor_reports) {
 		node = usteer_node_get_next_neighbor(&ln->node, last_remote_neighbor);
 		if (!node) {
 			/* No more nodes available */
@@ -677,11 +682,12 @@ usteer_local_node_state_next(struct uloop_timeout *timeout)
 static void
 usteer_local_node_request_link_measurement(struct usteer_local_node *ln)
 {
-	unsigned int min_count = DIV_ROUND_UP(config.link_measurement_interval, config.local_sta_update);
 	struct usteer_node *node;
 	struct sta_info *si;
 
 	node = &ln->node;
+
+	unsigned int min_count = DIV_ROUND_UP(config.link_measurement_interval, SSID_CFG(node->ssid, local_sta_update));
 
 	if (ln->link_measurement_tries < min_count) {
 		ln->link_measurement_tries++;
@@ -724,7 +730,7 @@ usteer_local_node_update(struct uloop_timeout *timeout)
 	usteer_band_steering_perform_steer(ln);
 	usteer_local_node_request_link_measurement(ln);
 
-	uloop_timeout_set(timeout, config.local_sta_update);
+	uloop_timeout_set(timeout, SSID_CFG(node->ssid, local_sta_update));
 }
 
 static void
@@ -783,6 +789,7 @@ usteer_get_node(struct ubus_context *ctx, const char *name)
 	kvlist_init(&ln->node_info, kvlist_blob_len);
 	INIT_LIST_HEAD(&node->sta_info);
 	INIT_LIST_HEAD(&node->measurements);
+	usteer_known_node_init(node, name);
 
 	ln->bss_tm_queries_timeout.cb = usteer_local_node_process_bss_tm_queries;
 	INIT_LIST_HEAD(&ln->bss_tm_queries);
@@ -793,13 +800,18 @@ static void
 usteer_node_run_update_script(struct usteer_node *node)
 {
 	struct usteer_local_node *ln = container_of(node, struct usteer_local_node, node);
+	/* Not a plain SSID_CFG() lookup: the global fallback here is the
+	 * node_up_script static above, not config.node_up_script (dead
+	 * field) - see the comment on usteer_ssid_config.node_up_script. */
+	struct usteer_ssid_config *sc = usteer_ssid_config_get(node->ssid);
+	const char *script = (sc && sc->node_up_script) ? sc->node_up_script : node_up_script;
 	char *val;
 
-	if (!node_up_script)
+	if (!script)
 		return;
 
-	val = alloca(strlen(node_up_script) + strlen(ln->iface) + 8);
-	sprintf(val, "%s '%s'", node_up_script, ln->iface);
+	val = alloca(strlen(script) + strlen(ln->iface) + 8);
+	sprintf(val, "%s '%s'", script, ln->iface);
 	if (system(val))
 		MSG(INFO, "failed to execute %s\n", val);
 }
